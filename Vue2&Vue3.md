@@ -1,5 +1,7 @@
 # Vue2&Vue3
 
+> 可以在vscode中安装三个插件，以便更好的书写代码，提高效率：`Vue 3 Snippets`(hollowtree)
+
 [toc]
 
 ## 一. Vue概述
@@ -91,7 +93,7 @@ var app = new Vue({
 | data{Object} | data中用于存储数据，数据供el所指定的容器去使用。是以键值对形式存储 |
 |   {{name}}   | 插值语句，将data对象中所指定的name插入到el指定容器中，里面形式为表达式 |
 
-### 3. 常见的Vue实例参数
+### 3. ==常见的Vue实例参数==
 
 > 注意一个Vue实例不能同时接管多个容器，且一个容器也只能被一个实例接管。所以容器和实例之间的关系是一对一型的。
 
@@ -167,7 +169,7 @@ var app = new Vue({
 
 输出结果：`Hello Vue!`
 
-### 2. 指令语法
+### 2. ==指令语法==
 
 > Vue里的指令都是以`V-`开头，如：**`v-bind`指令会将标签属性值作为JavaScript表达式执行**，就会被转译成JavaScript表达式执行。
 >
@@ -455,7 +457,7 @@ let obj2 = {y:200}
 
 |  参数名   |                             描述                             |
 | :-------: | :----------------------------------------------------------: |
-| methods： | 里面放如事件函数，其中可以有多个事件函数，但方法名不能一样。函数可以接收参数 |
+| methods： | 里面放如事件函数或者方法，其中可以有多个事件函数，但方法名不能一样。函数可以接收参数 |
 
 `v-on:click`指令介绍：
 
@@ -751,21 +753,935 @@ Vue.config.keyCodes.huiche = 13 //定义了一个 别名按键
   > 4. methods中配置的函数，都是被Vue所管理的函数，this的指向是vm或组件实例对象;
   > 5. @click="demo"和@click="demo($event)" 效果一致， 但后者可以传参;
 
-### 4. 计算属性
+## 六. 计算属性
 
 > 模板内的表达式非常便利，但是设计它们的初衷是用于**简单运算的**。在模板中放入太多的逻辑会让模板过重且难以维护。
 >
-> **计算属性的用法**：在一个计算属性里可以完成各种复杂的逻辑，包括运算、函数调用等，只要最终返回一个结果就可以。 
+> **计算属性的用法**：在一个计算属性里可以完成各种复杂的逻辑，包括运算、函数调用等，只要最终返回一个结果就可以。简单说就是将定义好的属性经过计算加工等生成一个全新的属性。 这里我们需要用到Vue实例参数中的`computed`该属性描述如下：
 
+|  参数名  |                             描述                             |
+| :------: | :----------------------------------------------------------: |
+| computed | 计算属性允许我们对指定的视图，复杂的值计算。这些值将绑定到依赖项值，只在需要时更新。其中的属性值读取必须要用到`this`关键字 |
 
+#### 4.1 computed内置对象的get()方法：
 
+~~~html
+<div id=" root"> 
+    姓: <input type="text" v-model="firstName"> <br/><br/>
+    名: <input type="text" v -model="lastName"> <br/><br/>
+    全名: <span>{{fullName}}</span>
+</div>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    const Vm = new Vue({
+        el: '#root',
+        data:{
+            firstName:'张',
+            lastName:'三'
+        },
+        computed:{
+            fullName:{
+                //get有什么作用?当有人读取ful1Name时，get就会被调用，且返回值就作为fullName的值
+                get(){
+                    console.log( 'get被调用了')
+                    // console. log(this) //此处的this是vm
+                    return this.firstName +'-'+ this.lastName
+                }
+            }
+        }
+    })
+</script>
+~~~
 
+执行结果：`张-三`，不管输入什么输出结果都是：`xxx-xxx`的格式。
 
+> 这里的`computed`参数内定义了一个fullName对象，但是和普通的对象调用不同的是，此处直接使用对象名就可以调用`get()`方法。因为Vue示例获取了`get()`方法的返回值，然后绑定到了对象fullName上。所以插值语句直接写`fullName`而不是`fullName.get()`
 
+**注意：get什么时候被调用：1.初次读取fullName时。2.所依赖的数据发生变化时。**
 
+#### 4.2 computed内置对象的set()方法
 
+> 以上的对象中get()方法只能读取值，而当我们需要修改fullName值时，我们就需要用到`set()`方法。
+>
+> set只有当对象被修改时候才会调用，有一个参数，为接收到的值。
 
+~~~html
+<div id=" root"> 
+    姓: <input type="text" v-model="firstName"> <br/><br/>
+    名: <input type="text" v -model="lastName"> <br/><br/>
+    全名: <span>{{fullName}}</span>
+</div>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    const Vm = new Vue({
+        el: '#root',
+        data:{
+            firstName:'张',
+            lastName:'三'
+        },
+        computed:{
+            fullName:{
+                //get有什么作用?当有人读取ful1Name时，get就会被调用，且返回值就作为fullName的值
+                get(){
+                    console.log( 'get被调用了')
+                    // console. log(this) //此处的this是vm
+                    return this.firstName +'-'+ this.lastName
+                },
+                set(value){
+                    //切割修改的值
+                    arr = value.split('-')
+                    this.firstName = arr[0]
+                    this.lastName = arr[1]
+                }
+            }
+        }
+    })
+</script>
+~~~
 
+此时运行当我们通过控制台输入：`fullName='李-四'`时候，页面就会进行修改，fullName返回值为`李-四`。
+
+#### 4.3 计算属性的简写
+
+> 大部分时候计算属性是为了将数据加工后展示在页面上，不进行修改的。此时如果你确定你的计算属性是为了在页面上展示数据。那么就可以用到计算机属性的简写。上面的代码可以简写为一下：
+
+~~~html
+<div id=" root"> 
+    姓: <input type="text" v-model="firstName"> <br/><br/>
+    名: <input type="text" v -model="lastName"> <br/><br/>
+    全名: <span>{{fullName}}</span>
+</div>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    const Vm = new Vue({
+        el: '#root',
+        data:{
+            firstName:'张',
+            lastName:'三'
+        },
+        computed:{
+            fu1lName:function( ){
+                console.log('get被调用了')
+                return this.firstName+'-'+this. lastName
+            }
+        }
+    })
+</script>
+~~~
+
+#### 4.4 总结
+
+1. 定义:要用的属性不存在，要通过已有属性计算得来。
+2. 原理:底层借助了objcet。defineproperty方法提供的getter和setter. 、
+3. 优势:与methods 实现相比，内部有缓存机制(复用)，效率更高，调试方便。
+4. get函数什么时候执行?
+   - 初次读取时会执行一次。
+   - 当依赖的数据发生改变时会被再次调用。
+
+5. 备注:
+   - 计算属性最终会出现在vm上，直接读取使用即可。
+   - 如果计算属性要被修改，那必须写set函数去响应修改，且set中要引起计算时依赖的数据发生改变。
+
+## 七. 监视属性
+
+> 写在Vue对象的`watch`参数中，它的值是配置对象——即属性名。当被监听的属性改变时，回调函数自动调用，进行相关操作。
+>
+> 监视的属性必须存在，才能进行监视。
+
+watch监视属性详情：
+
+|    参数详情    |                             描述                             |
+| :------------: | :----------------------------------------------------------: |
+| watch(monitor) | 整个为一个对象，键(方法名)是需要观察的表达式，值(对应监听函数)是对应回调函数 |
+
+### 1. watch内置对象handler()方法
+
+> 和计算属性的computed参数一样，该参数内部方法名为要监听的参数或者方法名。但每个方法中要定义`handler()`方法。该方法有两个参数：`newValue`(修改后的属性值)和`oldvalue`(原先的属性值)。它们分别接受新值和旧值。
+
+~~~html
+<body>
+    <!-- 准备好一个容器-->
+    <div id="root">
+        <h2>今天天气很{{info}}</h2>
+        <button @click=" changeWeather">切换天气</button>
+    </div>
+</body>
+<script type="text/javascript" >
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    const Vm = new Vue({
+        el:'#root',
+        data:{
+            isHot:true,
+        },
+        computed:{
+            info(){
+                return this.isHot? '炎热':'凉爽';
+            },
+            methods: {
+                changeWeather(){
+                    this.isHot = !this.isHot 
+                }
+            },
+            watch:{
+                isHot:{
+                    //handler什么时候调用?当isHot发 生改变时。
+                    handler(){
+                        console. log('isHot被修改了')
+                    }
+                }
+            }
+        })
+</script>
+</body>
+~~~
+
+> 上面代码能达到点击按钮实现天气效果切换效果。watch内的参数表示当isHot值改变时，就会触发handler()方法。
+
+### 2. watch内置对象的immediate方法
+
+>  handler特点是：最初绑定时不会执行，等到 监听的值改变时才执行监听计算。如果想要一开始就让他在最初绑定的时候就执行监听函数，就需要用到immediate。该参数介绍如下：
+
+|         方法名         |                             描述                             |
+| :--------------------: | :----------------------------------------------------------: |
+| immediate(true\|false) | 参数为true时，当事件被绑定时直接执行。参数为false时，当事件被调用时候才会执行。其作用主要是初始化时让handler()调用以下。 |
+
+对以上案例进行修改：
+
+~~~html
+<body>
+    <!-- 准备好一个容器-->
+    <div id="root">
+        <h2>今天天气很{{info}}</h2>
+        <button @click=" changeWeather">切换天气</button>
+    </div>
+</body>
+<script type="text/javascript" >
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    const Vm = new Vue({
+        el:'#root',
+        data:{
+            isHot:true,
+        },
+        computed:{
+            info(){
+                return this.isHot? '炎热':'凉爽';
+            },
+            methods: {
+                changeWeather(){
+                    this.isHot = !this.isHot 
+                }
+            },
+            watch:{
+                isHot:{
+                    immediate:true,
+                    //handler什么时候调用?当isHot发 生改变时。
+                    handler(){
+                        console. log('isHot被修改了')
+                    }
+                }
+            }
+        })
+</script>
+</body>
+~~~
+
+上面代码的watch也可以写为：
+
+~~~JavaScript
+Vm.$watch('isHot',{
+    immediate:true, //初始化时让handler调用一下
+    //handler什么时候调用?当isHot发生改变时。
+    handler (newValue,oldValue){
+        console.log('isHot被修改了',newValue ,oldValue)
+    }
+})
+~~~
+
+- watche总结：
+
+  > 监视属性watch:
+  >
+  > 1. 当被监视的属性变化时，回调函数自动调用，进行相关操作
+  > 2. 监视的属性必须存在，才能进行监视! !
+  > 3. 监视的两种写法:
+  >    - new Vue时传入watch配置
+  >    - 通过vm. $watch()监视
+
+### 3. 深度监视
+
+> Vue中的watch默认不监测对象内部值得改变。因为检测的是对象内的地址，当修改对象内的值时，对象的地址不会发生变化，从而Vue的watch属性会默认认为对象内部没有发生变化，就会导致我们检测失败。如果想要检测对象内部值的变化就要用到深度监测：配置`deep:true`可以监测对象内部值改变。
+>
+> 注意：监听的属性需要字符串形式，因为原本就是字符串的简写，但是此处特定要体现出来。如上面watch内的`isHot()`其应该写为`'isHot()'`。
+
+**监视data中对象的一个数据**：
+
+~~~html
+<body>
+    <!-- 准备好一个容器-->
+    <div id="root">
+        <h2>今天天气很{{info}}</h2>
+        <button @click=" changeWeather">切换天气</button>
+    </div>
+</body>
+<script type="text/javascript" >
+    var vm = new Vue({
+        el: "#root",
+        data: {
+            isHot: true,
+            numbers:{
+                a:1,
+                b:2
+            }
+        },
+        methods: {
+            changeWeather() {
+                this.isHot = !this.isHot
+            }
+        },
+        computed: {
+            info() {
+                if (this.isHot) {
+                    return "炎热"
+                } else {
+                    return "寒冷"
+                }
+            }
+        },
+        watch: {
+            number:{
+                deep:true,
+                handler(){
+                    console.log("1")
+                }
+            }
+        }
+    })
+</script>
+</body>
+~~~
+
+> 此时就可以监视data参数内`numbers`对象内部的值变化
+
+- 深度监视总结：
+
+  深度监视:
+
+  1. Vue中的watch默认不监测对象内部值的改变(-层)。
+  2. 配置deep:true可以监测对象内部值改变(多层)。
+
+  备注:
+
+  1. Vue自身可以监测对象内部值的改变，但Vue提供的watch默认不可以!
+  2. 使用watch时根据数据的具体结构，决定是否采用深度监视。
+
+### 4. 监视的简写形式
+
+> 前提：不需要`immediate`和`deep`属性，函数当作handler方法写
+
+~~~JavaScript
+watch:{
+    isHot(){
+        ....
+    }
+}
+~~~
+
+或者为：
+
+~~~JavaScript
+vm.$watch("isHot", function(){
+    ...
+})
+~~~
+
+### 5. watch和computed属性对比
+
+两者区别：
+
+1. computed能完成的功能，watch都可以完成
+2. watch能完成的，computed不一定能完成，例如：watch可以进行异步操作
+
+两个小原则：
+
+1. 所被Vue管理的函数，最好写成普通函数，这样this的指向才是vm或者组件实例对象
+2. 所有不被Vue所管理的函数（定时器的回调函数、ajax的回调函数，Promise回调函数等），最好写成箭头函数，这样this的指向才是vm或者组件实例对象
+
+## 八. Class、Style绑定与样式渲染
+
+> 我们使用Vue的Class和Style可以更好的绑定样式，更有利于页面代码的维护。
+>
+> 操作元素的 class 列表和内联样式(Style)是数据绑定的一个常见需求。因为它们都是属性，所以我们可以用 `v-bind` 处理它们：只需要通过表达式计算出字符串结果即可。不过，字符串拼接麻烦且易错。因此，在将 `v-bind` 用于 `class` 和 `style` 时，Vue.js 做了专门的增强。表达式结果的类型除了字符串之外，还可以是对象或数组。
+
+### 1. 绑定Class样式三种写法
+
+> 给标签元素动态添加类名可以有三种写法：字符串赋值、数组赋值、对象赋值。
+
+#### 11. 绑定Class样式字符串写法
+
+> 字符串写法，适用于样式的类名不确定，需要动态指定。
+
+~~~html
+<!--这里假设Style标签中有：'happy'、'sad'、'normal'三种样式-->
+<body>
+    <div class= "basic" :class= "mood" @click=" changeMood" >{{name}}</div>
+</body>
+<script>
+    Vue. config. productionTip = false
+    new Vue({
+        el: '#root',
+        data:{
+            name:'shi',	
+            mood:'normal'
+        },
+        methods: {
+            changeMood(){
+                constarr=['happy','sad','normal']
+                const index = Math.floor (Math.random( )*3)
+                this.mood = arr[index]
+            }
+        },
+    })
+</script>
+~~~
+
+> 以上代码当我们点击div盒子后，Vue示例会通过点击事件，将`v-bind`(:后的内容)绑定的值修改为mood的值，然后传递给class。
+>
+> 当我们运行上面代码时：会随即向`basic`后追加一个style值。
+
+#### 1.2. 绑定Class样式数组写法
+
+> 适用于：要绑定的样式个数不确定、名字也不确定。
+
+~~~html
+<!--这里假设Style标签中有：'happy'、'sad'、'normal'三种样式-->
+<body>
+    <div class="basic" :class="classArr">{{name}}</div>
+</body>
+<script>
+    Vue.config.productionTip = false
+    new Vue({
+        el: '#root',
+        data:{
+            name:'shi',	
+            classArr:['atguigu1','atguigu2','atguigu3']
+        },
+    })
+</script>
+~~~
+
+> 以上代码执行后class会同时拥有：`basic、atguigu1、atguigu2、atguigu3`三个类名
+
+#### 1.3. 绑定Class样式对象写法
+
+> 适用于：要绑定的样式个数确定、名字也确定，但要动态决定用不用。
+
+~~~html
+<body>
+    <div class= "basic" :class= "classObj" >{{name}}</div>
+</body>
+<script>
+    Vue.config.productionTip = false
+    new Vue({
+        el: '#root',
+        data:{
+            name:'shi',
+            classObj:{
+                atguigu1:false,
+                atguigu2:false, 
+            }
+        },
+    })
+</script>
+~~~
+
+> 上面代码显示中class中的`atguigu1`和`atguigu2`都是false，表示不启用。改为true后，可以启用。
+
+### 2. 绑定Style样式
+
+> 我们可以在Style标签进行行内样式的动态书写。写法是：`v-bind:style=""`(:style="")。写法有两种：对象样式、数组样式。其中的**键名是央视对象**(名字与css中的键名书写格式要一致)。
+>
+> 这两种不常用，但要注意键名字母一定不要拼写错误，两个单词的第二个单词首字母要大写。和css格式差不多。案例如下：
+
+~~~html
+<body>
+    <div class="basic" :style="sty1e0bj">{{name}}</div>
+</body>
+<script>
+    Vue.config.productionTip = false
+    new Vue({
+        el: '#root',
+        data:{
+            name:'shi',
+            sty1e0bj:{
+                fontSize: '40px',
+                color:'red',
+                backgroundColor:'orange'
+            }
+        },
+    })
+</script>
+~~~
+
+- Class与Style绑定样式总结：
+
+  绑定样式:
+  1. class样式
+  写法:class="xxx" Xxx可以是字符串、对象、数组。
+  字符串写法适用于:类名不确定，要动态获取。
+  对象写法适用于:要绑定多个样式，个数不确定，名字也不确定。
+  数组写法适用于:要绑定多个样式，个数确定，名字也确定，但不确定用不用。
+  2. style样式
+  :style="{fontSize: xx}"其中xxx是动态值。
+  :style="[a,b]"其中a、b是样式对象。
+
+## 九. 页面渲染
+
+> 页面渲染值得是，通过一些判断规则决定页面节点是否要显示。
+
+### 1. 条件渲染
+
+> 我们使用模板指令来进行条件渲染，用来显示或者隐藏标签节点。指令有两个：`v-show`、和`v-if`。
+
+#### 1.1 v-show指令
+
+> 该指令是一个类型为布尔值的表达式，用来判断是否隐藏标签。
+>
+> 如果表达式返回结果为true，则显示节点。如果为false，则将节点的`display`属性改为`none`。
+
+示例：
+
+~~~html
+<body>
+    <div id='root'>
+        <!-- 使用v-show做条件渲染-->
+        <h2 v-show="false">欢迎来到{{name}}</h2> 
+        <h2 v-show="1 === 1">欢迎来到{{name}}</h2> 
+    </div>
+</body>
+~~~
+
+上面的代码第一个`h2`标签会隐藏，而第二个`h2`标签会显示
+
+#### 1.2 v-if指令
+
+> 该指令和`v-show`指令一样，同样用来判断节点是否被隐藏。不同的是当表达式返回的结果为false时，**节点会直接被删除**。
+
+示例：
+
+~~~html
+<body>
+    <div id='root'>
+        <!-- 使用v- if做条件渲染-->
+        <h2 v-if="false">欢迎来到{{name}}</h2> 
+        <h2 v-if="1===1">欢迎来到{{name}}</h2> 
+    </div>
+</body>
+~~~
+
+同样，上面代码第一个节点会直接删除，第二个节点会正常显示。
+
+#### 1.3 渲染案例
+
+> 我们先准备一个按钮，在准备一个变量。点击按钮变量会+1。当变量等与一个值时，会先是对应标签
+
+~~~html
+<body>
+    <div id="root">
+        <h2>当前的n值是:{{n}}</h2>
+        <button @click="n++">点我n+1</ button>
+        <div v-show="n===1" >Angular</div>
+        <div v-show="n===2">React</div>
+        <div v-show="n===3">Vue</ div>
+        <!--下面用v-if实现-->
+        <div v-if="n===1" >Angular</div>
+        <div v-if="n===2">React</div>
+        <div v-if="n===3">Vue</ div>
+    </div>
+</body>
+~~~
+
+上面的`v-if`和`v-show`都可以实现显示或者隐藏节点，但不同的是`v-if`会直接将页面的节点删除。所以我们节点操作频率高的时候尽量用`v-show`，频率低时用`v-if`。
+
+#### 1.4 v-else-if指令
+
+> 该指令与JavaScript中的用法类似，但必须要配合`v-if`标签一起使用。
+
+~~~html
+<body>
+    <div id="root">
+        <h2>当前的n值是:{{n}}</h2>
+        <button @click="n++">点我n+1</ button>
+        <div v-if="n===1" >Angular</div>
+        <div v-else-if="n===2">React</div>
+        <div v-else-if="n===3">Vue</ div>
+    </div>
+</body>
+~~~
+
+上面代码是当n等于1时，后面的两个div不再执行。当第一个div标签结果为false时，再判断后面两个标签。其运行结果和上面的`v-if`运行一样。但其效率更高。
+
+#### 1.5 v-else指令
+
+> 该指令和JavaScript中的else一样。当前面的判断都不生效时，就输出else指令控制的标签。
+
+~~~html
+<body>
+    <div id="root">
+        <h2>当前的n值是:{{n}}</h2>
+        <button @click="n++">点我n+1</ button>
+        <div v-if="n===1" >Angular</div>
+        <div v-else-if="n===2">React</div>
+        <div v-else-if="n===3">Vue</ div>
+        <div v-else>text</ div>
+    </div>
+</body>
+~~~
+
+上面代码是当`v-if`和`v-else-if`都判断为false时，执行`v-else`控制的标签。注意`v-if`、`v-else-if`和`v-else`一起做判断时，中间不要添加其他节点。如下：
+
+~~~html
+<body>
+    <div id="root">
+        <h2>当前的n值是:{{n}}</h2>
+        <button @click="n++">点我n+1</ button>
+        <div v-if="n===1" >Angular</div>
+        <div v-else-if="n===2">React</div>
+        <div>11</div>
+        <div v-else-if="n===3">Vue</ div>
+        <div v-else>text</ div>
+    </div>
+</body>
+~~~
+
+> 这段代码只能判断前两个div标签，后面的被`<div>11</div>`节点打断，节点无法进行解析，控制台报错
+
+#### 1.6 v-if和template节点
+
+> template节点为模板节点，可以把列表项放入template标签中，然后进行批量渲染，选然后template节点会消失，节点内的标签正常显示，好处是不改变页面标签结构。但要注意该节点只能和`v-if`标签配合使用。
+
+~~~html
+<body>
+    <div id="root">
+        <h2>当前的n值是:{{n}}</h2>
+        <button @click="n++">点我n+1</ button>
+        <!-- v-if与template的配合使用-->
+        <template v-if="n ===1">
+            <h2>你好</h2>
+            <h2>shi</h2>
+            <h2>北京</h2>
+        </template>
+    </div>
+</body>
+~~~
+
+> 运行后页面没有`<template>`节点，直接显示三个`<h2>`节点。好处是不用再每个`h2`节点种写上判断。提高编码效率。
+
+- 条件渲染总结：
+
+  条件渲染:
+
+  1. v-if
+     写法：
+
+     - v-if="表达式”
+     - v-else-if="表达式"
+     - v-else="表达式”
+
+     适用于:切换频率较低的场景。
+     特点:不展示的DOM元素直接被移除。
+     注意: v-if可以和:v-else-if、v-else起使用， 但要求结构不能被“打断”。
+
+  2. v-show 
+  写法: v-show="表达式"
+  适用于：切换频率较高的场景。
+  特点：不展示的DOM元素未被移除，仅仅是使用样式隐藏掉
+  3. 备注：使用v-if的时，元素可能无法获取到，而使用v-show 定可以获取到。
+
+### 2. 列表渲染
+
+> 用 v-for 指令基于一个**数组**来渲染一个列表。
+>
+> v-for 指令需要使用 **item in items** 形式的特殊语法，其中 items 是源数据数组。其用法和JavaScript的`for in`循环一致。
+>
+> 为了给 Vue 一个提示，以便它能跟踪每个节点的身份，从而重用和重新排序现有元素，需要为每项提供一个唯一 key属性。
+
+#### 2.1 使用for..in遍历数组
+
+> 可以在数组种定义几组对象，来进行遍历取值，放进容器中。但记得for...in循环指令中一定要绑定一个`key`值，用作每个节点的id。
+
+~~~html
+<body>
+    <div>
+        <h2>人员列表</h2>
+        <ul>
+            <li v-for="(p,index) of persons" :key="index">
+                {{p.name}}-{{p.age}}
+            </li>
+        </ul>
+    </div>
+</body>
+<script>
+    Vue . config . productionTip = false
+    new Vue({
+        el: '#root',
+        data:{
+            persons:[
+                {id:'001',name:'张三',age :18},
+                {id:'002',name: '李四',age:19},
+                {id:'003',name:'王五',age :20}
+            ],
+        }
+    })
+</script>
+~~~
+
+以上代码运行结果：
+
+[for...in循环运行结果：](https://s1.ax1x.com/2022/04/26/LHXjDe.png)
+
+​																			[<img src="https://s1.ax1x.com/2022/04/26/LHXjDe.png" alt="LHXjDe.png" style="zoom:50%;" />](https://imgtu.com/i/LHXjDe)
+
+#### 2.2 使用for..in遍历对象
+
+> for...in可以用于遍历对象，需要注意的是遍历对象时第一个接收的参数是对象的值，第二个参数是对象名。
+
+~~~html
+<body>
+    <div>
+        <h2>汽车信息</h2>
+        <ul>
+            <li v-for="(value,k) in car" :key="k">
+                {{a}}--{{b}} 
+            </li>
+        </ul>
+    </div>
+</body>
+<script>
+    Vue.config.productionTip = false
+    new Vue({
+        el: '#root',
+        data:{
+            car:{
+                name:'奥迪A8',
+                price:'70万',
+                color:'黑色'
+            }
+        })
+</script>
+~~~
+
+运行结果：
+
+[for...in遍历对象结果：](https://s1.ax1x.com/2022/04/26/LHxLvV.png)
+
+​																[<img src="https://s1.ax1x.com/2022/04/26/LHxLvV.png" alt="LHxLvV.png" style="zoom: 50%;" />](https://imgtu.com/i/LHxLvV)
+
+- 列表渲染总结：
+
+  v-for指令:
+
+  1. 用于展示列表数据
+  2. 语法: v-for="(item, index) in xx" : key="yyy"
+  3. 可遍历:数组、对象、字符串(用的很少)、指定次数(用的很少)
+
+#### 2.3 ==for...in循环中key的作用==
+
+> 当 Vue.js 用`v-for`正在更新已渲染过的元素列表时，它默认用“就地复用”策略。如果数据项的顺序被改变，Vue 将不会移动 DOM 元素来匹配数据项的顺序， 而是简单复用此处每个元素，并且确保它在特定索引下显示已被渲染过的每个元素。
+>
+> 此时会导致两个问题：
+>
+> 1. 效率低下
+> 2. 索引值对比算法(diff算法)出错
+
+- 问题引入：
+
+  ~~~html
+  <body>
+      <!--准备好一个容器-->
+      <div id="root">
+          <!--遍历数组-->
+          <h2>人员列表(遍历数组) </h2>
+          <button @click . once=" add">添加一个老刘</ button>
+          <ul> 
+              <li v-for="(p,index) of persons" :key="index">
+                  {{p.name}}-{{p.age}}
+                  <inputr type="text"/>
+              </li>
+          </ul>
+      </div>
+  </body>
+  <script>
+      Vue.config.productionTip = false
+      new Vue({
+          el:'#root',
+          data:{
+              persons:[
+                  {id:'001',name: '张三' ,age:18},
+                  {id:'002',name:'李四',age:19},
+                  {id:'003',name:'王五',age:20}
+              ],
+              methods: {
+                  add(){
+                      const p = {id:'004',name:'老刘',age :40}
+                      this.persons.unshift(p)
+                  }
+              },
+          })
+  </script>
+  ~~~
+
+  以下问题导致的原因是`key`的值为index，如果将`key`的值改为`p.id`用对象里的唯一标识id就可以解决这个问题
+
+  上面代码运行后在输入框内输入信息后点击按钮将`老王`节点添加到页面，此时就会出现问题：
+
+  [key出现的问题：](https://s1.ax1x.com/2022/04/26/Lb9wRA.png)
+
+​													[<img src="https://s1.ax1x.com/2022/04/26/Lb9wRA.png" alt="Lb9wRA.png" style="zoom:50%;" />](https://imgtu.com/i/Lb9wRA)
+
+- key的分析
+
+  > 可以没有值，默认为index值。当key用index做值时：
+
+  [key分析图：](https://s1.ax1x.com/2022/04/26/Lbkb8g.png)                        [<img src="https://s1.ax1x.com/2022/04/26/Lbkb8g.png" alt="Lbkb8g.png" style="zoom: 50%;" />](https://imgtu.com/i/Lbkb8g)
+
+  > 由上图我们观察到：
+  >
+  > 1. Vue先拿到data中的初始数据person中的值。
+  > 2. 根据数据生成虚拟DOM，再将虚拟的DOM，在虚拟的DOM中节点有`key`值，这个值是给Vue后续做对比用的。之后会转换为真实DOM，取消`key`值。
+  > 3. 之后我们向输入框内输出文字后，再点击按钮，会添加一个`老王`节点。
+  > 4. 此时，Vue会生成新的实例，在这个实例中老王会被放在节点的最上面。
+  > 5. 根据最新生成的数据生成新的虚拟DOM，在这个虚拟DOM中由于我们指定的`key`值为`index`值，所以`老王`节点的key值为0，之后依次递增。
+  > 6. 这时，Vue会使用diff算法和之前旧的虚拟DOM进行数据对比，如果两个虚拟DOM中的数据一样，就会直接拿来用，当不一样时，就会将新的值替代旧的值。
+  > 7. 因为我们在输入框中输入的数据实在真实DOM中体现的。所以Vue会将两个虚拟DOM中的`<input>`节点当作一样的数据进行输出。
+
+  以下是用key的id做值：
+
+  [key用id做值：](https://s1.ax1x.com/2022/04/26/LbEspD.png)                                  [<img src="https://s1.ax1x.com/2022/04/26/LbEspD.png" alt="LbEspD.png" style="zoom: 50%;" />](https://imgtu.com/i/LbEspD)
+
+  > 以上是节点在前面加入，当我们把代码中的`this.persons.unshift(p)`改为`this.persons.push(p)`
+
+- key作用总结
+
+  > react、vue中的key有什么作用? ( key的内部原理)
+
+  1. 虚拟DOM中key的作用:
+     key是虚拟DOM对象的标识，当状态中的数据发生变化时，Vue会根据[新数据]生成[新的虚拟DOM]，随后Vue进行[新虚拟DOM]与[旧虚拟DOM]的差异比较，比较规则如下。
+
+  2. 对比规则:
+     (1) .旧虚拟DOM中找到了与新虚拟DOM相同的key:
+
+     - 若虚拟DOM中内容没变，直接使用之前的真实DOM!
+     - 若虚拟DOM中内容变了，则生成新的真实DOM，随后替换掉页面中之前的真实DOM。
+
+     (2).旧虚拟DOM中未找到与新虚拟DOM相同的key
+
+     - 创建新的真实DOM，随后渲染到到页面。
+
+  3. 用index作 为key可能会引发的问题:
+     (1). 若对数据进行:逆序添加、逆序删除等破坏顺序操作:
+
+     - 会产生没有必要的真实DOM更新==>界面效果没问题，但效率低。
+
+     (2). 如果结构中还包含输入类的DOM:
+
+     - 会产生错误DOM更新==>界面有问题。
+
+  4. 开发中如何选择key?：
+
+     - 最好使用每条数据的唯一标识作为key,比如id、手机号、身份证号、学号等唯一值。
+     - 如果不存在对数据的逆序添加、逆序删除等破坏顺序操作，仅用于渲染列表用于展示，使用index作为key是没有问题的。
+  
+### 3. 列表过滤案例
+
+> 我们需要准备一段数据，并在网页中实现模糊查询的效果。
+
+- 监听属性实现代码如下：
+
+  ~~~html
+  <body>
+      <div id= "root">
+          <h2>人员列表</h2>
+          < input type="text" placeholder="请输入名字"v-model="keyWord">
+          <ul>
+              <li v-for="(p,index) of filPerons" :key= "index">
+                  {{p.name}}-{{p.age}}-{{p.sex}}
+              </li>
+          </ul>
+      </div>
+  </body>
+  <script>
+      //用watch实现
+      new Vue({
+          el:'#root',
+          data:{
+              keyWord:' ',
+              persons:[
+                  {id:'001',name:'马冬梅',age:19,sex:'女'},
+                  {id:'002',name:'周冬雨',age:20,sex:'女'},
+                  {id:'003',name:'周杰伦',age:21,sex:'男'},
+                  {id:'004',name:'温兆伦',age:22, sex:'男'}
+              ],
+              filPerons:[]
+          },
+          watch:{
+              keyWord:{
+                  immediate: true, 
+                  handler(val){
+                      this.filPerons = this.persons.filter((p)=>{
+                          return p.name.indexOf(val)!== -1
+                      })
+                  }
+              }
+          })
+  </script>
+  ~~~
+
+  > 上面一段代码可以实习对`persons`中的数据进行模糊查询并展示在页面的效果。
+  >
+  > 其中`watch`中的代码是：监听与文本框绑定的keyword变量有没有改变，即当用户在用户框中输入信息时，keyword的值就会改变。如果改变监听函数就会对`persons`数组中的数据进行查询匹配，如果未匹配则返回结果`-1`，匹配成功返回数组下标。` this.persons.filter`会将返回的下标数组筛选出来传给`filePerons`数组，并在页面中列表中通过`v-for`遍历`filePerons`输出到页面。
+
+- 这里也可以用计算属性写：
+
+  ~~~html
+  <body>
+      <div id= "root">
+          <h2>人员列表</h2>
+          < input type="text" placeholder="请输入名字"v-model="keyWord">
+          <ul>
+              <li v-for="(p,index) of filPerons" :key= "index">
+                  {{p.name}}-{{p.age}}-{{p.sex}}
+              </li>
+          </ul>
+      </div>
+  </body>
+  <script>
+      new Vue({
+          el:'#root',
+          data:{
+              keyWord:'',
+              persons:[
+                  {id:'001',name:'马冬梅',age:19,sex:'女'},
+                  {id:'002',name:'周冬雨',age:20,sex:'女'},
+                  {id:'003',name:'周杰伦',age:21,sex:'男'},
+                  {id:'004',name:'温兆伦',age:22, sex:'男'}
+              ]
+          },
+          computed:{
+              filPerons(){
+                  return this.persons.filter((p)=>{
+                      return p.name.indexOf(this.keyWord) !== -1
+                  })
+              }
+          }
+      })
+  </script>
+  ~~~
+
+  > 使用计算属性较为简单，我们只需要关注`keyWord`变量，也就是只用关注用户的输入字符即可。
+
+### 4. 列表升序案例
+
+> 
 
 
 
