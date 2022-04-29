@@ -2073,23 +2073,23 @@ forward(ServletRequest request,ServletResponse response)
       resp.setCharacterEncoding("UTF-8");
       resp.setContentType( "text/html ; charset=utf-8");
       //得到Session
-      HttpSession session = req. getSession();|
+      HttpSession session = req. getSession();
       //给Session中存东西
       session.setAttribute( name: "name", value: "史");
       //获取Session的ID
       String sessionId = session. getId();
       //判断iSession,是不是新创建
-      if (session. isNew()){
-          resp. getWriter() .write( s: "session创建成功, ID: "+sessionId);
+      if (session.isNew()){
+          resp.getWriter().write( s: "session创建成功, ID: "+sessionId);
       }else
-          resp . getWriter() . write( s: "session以及在服务器中存在了, ID:"+sessionId);
+          resp.getWriter().write( s: "session以及在服务器中存在了, ID:"+sessionId);
   }
   //Session创建的时候做了什么事情;
   //Cookie cookie = new cookie( "JSESSIONID", sessionId);
-  //resp. addCookie(cookie);
+  //resp.addCookie(cookie);
   ~~~
 
-- 之后再创建以恶搞SessionDemo02获取SessionDemo01中的值
+- 之后再创建一个SessionDemo02获取SessionDemo01中的值
 
   ~~~java
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -2178,7 +2178,7 @@ forward(ServletRequest request,ServletResponse response)
       //给Session中存东西
       session.setAttribute( name: "name", new Person("史",20));
       //获取Session的ID
-      String sessionId = session. getId();
+      String sessionId = session.getId();
       //判断iSession,是不是新创建
       if (session. isNew()){
           resp. getWriter() .write( s: "session创建成功, ID: "+sessionId);
@@ -2221,6 +2221,10 @@ session使用场景：
 > - 保存一一个登录用户的信息;
 > - 购物车信息;
 > - 在整个网站中经常会使用的数据，我们将它保存在Session中;
+
+cookie中的JSESSIONID
+
+> 每次会话(如用户登录)，我们想让HTTP有记忆，就需要用到session的id来还原上次会话。但session的id如果存在服务器的内存中，太多会造成服务器崩溃，所以我们一般会将session的id存放在cookie中，名为`JSESSIONID`。然后设置cookie存在时间和session存活时间一致(默认30分钟)。此时当我们下一次用同样的浏览器访问时，请求头request会自动将cookie中的JSESSIONID提交到服务器，实现上次对话。
 
 会话自动过期：
 

