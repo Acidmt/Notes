@@ -108,8 +108,8 @@ var app = new Vue({
 |         computed         | vue的计算属性，将被混入到 Vue 实例中。所有 getter 和 setter 的 this 上下文自动地绑定为 Vue 实例 |
 |          props           | 用于父子组件的eventbus传值，是数组或对象，props的成员是子组件接收的来自父组件的数据 |
 |        propsData         |           创建实例时传递 props。主要作用是方便测试           |
-|         filters          |              包含 Vue 实例可用过滤器的哈希表。               |
-|        directives        |               包含 Vue 实例可用指令的哈希表。                |
+|         filters          |             包含 Vue 实例可用过滤器来包装数据。              |
+|        directives        |             包含 Vue 实例可用的创建自定义指令。              |
 |        components        |  （即该组件的子实例）这里是包含 Vue 实例可用组件的哈希表。   |
 
 ### 4. 总结
@@ -2320,3 +2320,183 @@ v-cloak指令(没有值) :
 ~~~
 
 运行结果：`初始化的n值是:{{n}`、`当前的n值是:{{n}}`页面不会进行编译，而是直接渲染。
+
+## 十三. Vue的自定义指令
+
+> 自定义指令需要在标签后以`v-指令名='表达式'`的形式绑定标签。之后要在Vue实例中用`directives`参数，书写指令表达式(自定义指令要干什么)。`directives`参数内的指令默认可以接收两个参数。也可以有两种写法：对象式和函数式。`directives`参数介绍如下：
+
+|   参数名    |                      描述                       |
+| :---------: | :---------------------------------------------: |
+| element参数 | 获取网页绑定自定义标签的真实DOM(即获得绑定标签) |
+| binding参数 |          绑定标签时表达式的值或者对象           |
+
+### 1. 自定义指令的函数式写法
+
+> 我们有一个需求：定义一个v-big指令,和v-text功能 类似，但会把绑定的数值放大10倍。代码如下：
+
+~~~html
+<body>
+    <div id="root">
+        <h2>当前的n值是: <span v-text="n"></span></h2>
+        <h2>放大10倍后的n值是: <span v-big="n"></span></h2>
+        <button @click="n++">点我n+1</button>
+    </div>
+</body>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    new Vue({
+        el:'#root',
+        data:{
+            n:1
+        },
+        directives :{
+            //big函数何时会被调用?1.指令与元素成功绑定时(一上来)。2.指令所在的模板被重新解析时。
+            big(element, binding){
+                element.innerText = binding.value*10
+            }
+        }
+    })
+</script>
+~~~
+
+> 以上代码会在浏览器页面输出放大10倍后的n值。
+>
+> 其中我们在第4行给`<span>`标签绑定了一个自定义指令`v-big`并传递了一个参数n，在`directives`中定义指令语法。其中`big`的第一个参数为`<span>`节点元素，第二参数为data中的n对象。第18行代码让`<span>`标签中显示n*10后的值。
+>
+> big函数调用时机：
+>
+> 1. 指令与元素成功绑定时(一上来就调用)
+> 2. 指令所在的模板被重新解析时。即Vue中的任何数据修改时。
+
+### 2. 自定义指令的对象式写法
+
+> 定义一个`v-fbind`指令，和v-bind功能类似，但可以让其所绑定的input元素默认获取焦点。因为函数式的代码在刚上来的就被调用，此时`input`没有被Vue实例插入到页面，所以获取焦点会失败，这时我们就要用到对象式写法，以更精确的控制代码插入的时机。以下是代码：
+
+~~~html
+<body>
+    <div id="root">
+        <h2>当前的n值是: <span v-text="n"></span></h2>
+        <h2>放大10倍后的n值是: <span v-big="n"></span></h2>
+        <button @click="n++">点我n+1</button>
+        <input type= "text" v-fbind:value="n">
+    </div>
+</body>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+    new Vue({
+        el:'#root',
+        data:{
+            n:1
+        },
+        directives :{
+            fbind:{
+                //指令与元素成功绑定时(一上来)
+                bind(element,binding){
+                    element.value = binding. value 
+                },
+                //指令所在元素被插入页面时
+                inserted(element,binding){
+                    element.focus()
+                },
+                //指令所在的模板被重新解析时
+                update(element,binding){
+                    element.value = binding.value
+                }
+            }
+        }
+    })
+</script>
+~~~
+
+此时我们就可以做到打开网页就获取输入框的焦点。
+
+> 上面的代码中对象式的写法中默认有三个方法需要我们重写，分别是：`bind`、`inserted`、`update`他们详细说明如下：
+
+|          方法名           |                描述                |
+| :-----------------------: | :--------------------------------: |
+|   bind(element,binding)   | 指令与元素成功绑定时(一上来就执行) |
+| inserted(element,binding) |      指令所在元素被插入页面时      |
+|  update(element,binding)  |     指令所在的模板被重新解析时     |
+
+其中`bind`和`update`执行功能基本一致。我们有特殊业务的情况下是在`inserted`中配置业务。
+
+### 3. 定义全局指令
+
+> 与之前的定义过滤器的方法一样，我们要用到`Vm.directive('方法名',函数{})`
+
+~~~JavaScript
+//对象式
+Vue.directive('fbind' ,{
+    //指令与元素成功绑定时(一上来)
+    bind(element , binding){
+        element.value = binding 。value
+    },
+    //指令所在元素被插入页面时
+    inserted(element , binding){
+        element. focus( )
+    },
+    //指令所在的模板被重新解析时
+    update(element, binding){
+        element.value = binding. value
+    }
+}) 
+//函数式
+Vue.directive('big',function(element , binding){
+    console.log('big' ,this) //注意此处的this是window
+    element.innerText = binding.value*10
+})
+~~~
+
+- 总结
+
+  自定义指令总结:
+  一. 定义语法:
+
+  - 局部指令:
+    directives:{指令名:配置对象}或directives:{指令名:回调函数}
+  - 全局指令:
+    Vue.directive(指令名，配置对象)或Vue. directive(指令名，回调函数)
+
+  二、 配置对象中常用的3个回调:
+
+  - bind:指令与元素成功绑定时调用。
+  - inserted:指 令所在元素被插入页面时调用。
+  - update:指令所在模板结构被重新解析时调用。
+
+  三、备注:
+
+  1. 指令定义时不加v-，但使用时要加V-
+  2. 指令名如果是多个单词，要使用kebab-case命名方式，不要用camelCase命名。
+
+## 十四. Vue的生命周期
+
+> 生命周期:
+>
+> 1. 又名:生命周期回调函数、生命周期函数、生命周期钩子。
+> 2. 是什么：Vue在关键时刻帮我们调用的一些特殊名称的函数。
+> 3. 生命周期函数的名字不可更改，但函数的具体内容是程序员根据需求编写的。
+> 4. 生命周期函数中的this指向是vm或组件实例对象
+>
+> 生命周期方法：
+>
+> 1. 
+>    创建期间生命周期方法      beforeCreate:     created:      beforeMount      mounted
+> 2. 运行期间生命周期方法      beforeUpdate      updated
+> 3. 
+>    销毁期间的生命周期方法    beforeDestroy     destroyed
+
+生命周期方法：
+
+|    方法名    |                             描述                             |
+| :----------: | :----------------------------------------------------------: |
+| beforeCreate | 生命周期、事件，数据代理还未开始。此时：无法通过vm访问到data中的数据、methods中的方法。 |
+|   created    | 数据检测，数据代理开始，此时：可以通过vm访问到data中的数据、methods中配置的方法。 |
+| beforeMount  | 页面呈现的是未经Vue编译的DOM结构。此时所有对DOM的操作，最终都不奏效。 |
+|   mounted    | 页面中呈现的是经过Vue编译的DOM。此时对DOM的操作均有效(尽可能避免)。<br/>至此初始化过程结束，一般在此进行:开启定时器、发送网络请求、订阅消息、</br>绑定自定义事件、等初始化操作。 |
+
+[Vue生命周期图：](https://s1.ax1x.com/2022/04/30/OpJBqS.png)
+
+​		[<img src="https://s1.ax1x.com/2022/04/30/OpJBqS.png" alt="OpJBqS.png" style="zoom:50%;" />](https://imgtu.com/i/OpJBqS)
+
+
+
