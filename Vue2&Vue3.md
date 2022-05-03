@@ -1,6 +1,10 @@
-# Vue2&Vue3
+Vue2&Vue3
 
-> 可以在vscode中安装三个插件，以便更好的书写代码，提高效率：`Vue 3 Snippets`(hollowtree)
+> 可以在vscode中安装三个插件，以便更好的书写代码。
+>
+> 提高效率：`Vue 3 Snippets`(hollowtree)。
+>
+> Vue文件代码提示：Vetur(Pine Wu)
 
 [toc]
 
@@ -2477,26 +2481,749 @@ Vue.directive('big',function(element , binding){
 > 3. 生命周期函数的名字不可更改，但函数的具体内容是程序员根据需求编写的。
 > 4. 生命周期函数中的this指向是vm或组件实例对象
 >
-> 生命周期方法：
->
-> 1. 
->    创建期间生命周期方法      beforeCreate:     created:      beforeMount      mounted
-> 2. 运行期间生命周期方法      beforeUpdate      updated
-> 3. 
->    销毁期间的生命周期方法    beforeDestroy     destroyed
+> 生命周期四个阶段：初始化、挂载、更新、销毁
 
-生命周期方法：
+### 1. 生命周期方法
 
-|    方法名    |                             描述                             |
-| :----------: | :----------------------------------------------------------: |
-| beforeCreate | 生命周期、事件，数据代理还未开始。此时：无法通过vm访问到data中的数据、methods中的方法。 |
-|   created    | 数据检测，数据代理开始，此时：可以通过vm访问到data中的数据、methods中配置的方法。 |
-| beforeMount  | 页面呈现的是未经Vue编译的DOM结构。此时所有对DOM的操作，最终都不奏效。 |
-|   mounted    | 页面中呈现的是经过Vue编译的DOM。此时对DOM的操作均有效(尽可能避免)。<br/>至此初始化过程结束，一般在此进行:开启定时器、发送网络请求、订阅消息、</br>绑定自定义事件、等初始化操作。 |
+|     方法名      |                             描述                             |
+| :-------------: | :----------------------------------------------------------: |
+|  beforeCreate   | 生命周期、事件，数据代理还未开始。此时：无法通过vm访问到data中的数据、methods中的方法。 |
+|     created     | 数据检测，数据代理开始，此时：可以通过vm访问到data中的数据、methods中配置的方法。 |
+|   beforeMount   | 页面呈现的是未经Vue编译的DOM结构。此时所有对DOM的操作，最终都不奏效。 |
+|     mounted     | 页面中呈现的是经过Vue编译的DOM。此时对DOM的操作均有效(尽可能避免)。<br/>至此初始化过程结束，一般在此进行:开启定时器、发送网络请求、订阅消息、</br>绑定自定义事件、等初始化操作。 |
+|  beforeUpdate   |  此时页面是旧的，但数据已经更新，还没有来的即转换为新的DOM   |
+|     updated     |                    此时页面和数据保持同步                    |
+|  beforeDestroy  | 此时: vm中所有的: data、methods、 指令等等，都处于可用状态，马上要执行销毁过程，一般在此阶段:关闭定时器、取消订阅消息、解绑自定义事件等收尾操作 |
+|    destroyed    |            这里基本不写代码，代表Vue实例已经销毁             |
+| this.$destroy() |           是beforeDestroy和destroyed两个方法的综合           |
 
 [Vue生命周期图：](https://s1.ax1x.com/2022/04/30/OpJBqS.png)
 
 ​		[<img src="https://s1.ax1x.com/2022/04/30/OpJBqS.png" alt="OpJBqS.png" style="zoom:50%;" />](https://imgtu.com/i/OpJBqS)
 
+### 2. 方法的使用
 
+> 每一个方法就是一个Vue参数。与data平级
+
+~~~JavaScript
+Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+new Vue({
+    el:'#root',
+    data:{
+        n:1
+    },
+    methods:{
+        stop(){
+            this.$destroy()
+        }
+    },
+    beforeCreate(){},
+    created(){},
+    beforeMount(){},
+    mounted(){},
+    beforeUpdate(){},
+    updated(){},
+    beforeDestroy(){},
+    destroyed(){}
+})
+~~~
+
+- 总结：
+
+  vm的一生( vm的生命周期) ：
+
+  1. 将要创建`===>`调用beforeCreate函数。
+  2. 创建完毕`===>` 调用created函数。
+  3. 将要挂载`===>`调用beforeMount函数。
+  4. (重要)挂载完毕`===>`调用mounted函数。`=============>` [重要的钩子]
+  5. 将要更新`===>`调用beforeUpdate函数。
+  6. 更新完毕`===>`调用updated函数。
+  7. (重要)将要销毁`===>`调用beforeDestroy函数。`========>`[重要的钩子]
+  8. 销毁完毕===>调用destroyed函数。
+
+## 十五. 组件化
+
+> 传统的web项目都是一个HTML页面中有顶部、底部、导航栏、内容四个模块，所以我们就要再准备四个css和四个js，这样会导致依赖关系混乱，不好维护，以及代码复用率不高等问题。此时，Vue的组件化编程就完美解决了这个问题，组件化编程体现了，封装的概念，将HTML的每个部分css、js等封装到一起，用时一起使用即可。
+>
+> 组件的定义：实现应用中局部功能的代码个资源的集合。组件尽量往细的拆分。
+>
+> 两种方式对比如下：
+
+[传统方式编写web项目：](https://s1.ax1x.com/2022/05/01/O9BnpD.png)									[<img src="https://s1.ax1x.com/2022/05/01/O9BnpD.png" alt="O9BnpD.png" style="zoom:50%;" />](https://imgtu.com/i/O9BnpD)
+
+[使用Vue组件化编写Web项目：](https://s1.ax1x.com/2022/05/01/O9Bb9O.png)											[<img src="https://s1.ax1x.com/2022/05/01/O9Bb9O.png" alt="O9Bb9O.png" style="zoom:50%;" />](https://imgtu.com/i/O9Bb9O)
+
+### 1. 非单文件组件
+
+> 用来实现局部(特定)功能效果的代码集合(htm/css/js/ima....)，其能复用编码，简化项目编码，提高运行效率。
+>
+> 组件理论上分为：非单文件组件和单文件组件(开发用的多)。
+
+#### 1.1 非单文件组件的创建
+
+> 指得是一个文件中包含n个组件。
+>
+> 在Vue中使用组件需要三步：创建组件、注册组件、使用组件
+
+- 创建组件：
+
+  > 创建组件需要用到一个`extend`的API，在这个API中编写和之前Vue实例中一样的内容，但要注意，这里不能写`el`参数，`data`也要用函数式表示，因为用对象式的话会导致有的组件修改对象中的数据，那么其他用到该数据的组件也会用到影响。组件可以有多个。同时也要用到`template`参数来定义页面标签
+
+  ~~~JavaScript
+  Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+  //创建school组件
+  const school = Vue.extend({
+      // el: '#root', //组件定义时，一定不要写e1配置项，因为最终所有的组件都要被个vm管理，由vm决定服务于哪个组件
+      template:`
+      <div> 
+  		<h2>学校名称: {{schoolName}}</h2> 
+  		<h2>学校地址: {{address}}</h2>
+  	</div> `,
+      data(){
+          return {
+              schoolName:'尚硅谷',
+              address:'北京昌平'
+          }
+      }
+  })
+  
+  //创建student组件
+  const student = Vue.extend({
+      template:`
+      <div> 
+  		<h2>学生姓名: {{ studentName}}</h2>
+  		<h2>学生年龄: {{age}}</h2>
+  	</div> `,
+      data(){
+          return{
+              studentName: '张三',
+              age:18 
+          }
+      }
+  })
+  ~~~
+
+- 组件注册
+
+  > 注册组件我们仍需要`new`一个Vue实例，在Vue实例中用`components`参数来配置子组件。这里面的第键为自定义组件名，值为我们之前创建组件时候的组件名。建议键值一样。同时也有全局注册和局部注册
+
+  ~~~JavaScript
+  //创建局部vm注册
+  new Vue({
+      el: '#root',
+      //第二步:注册组件(局部注册)
+      components:{
+          xuexiao:school,
+          xuesheng:student
+      }
+  })
+  //全局注册组件
+  Vue.component('xuexiao',school)
+  ~~~
+
+- 组件使用
+
+  > 我们可以直接将组件注册中的`xuexiao`和`xuesheng`当标签用在页面
+
+  ~~~html
+  <body>
+      <xuesheng></xuesheng>
+      <xuexiao></xuexiao>
+  </body>
+  ~~~
+
+- 完整代码
+
+  ~~~html
+  <body>
+      <xuesheng></xuesheng>
+      <hr/>
+      <xuexiao></xuexiao>
+  </body>
+  <script>
+  	Vue.config.productionTip = false //阻止vue在启动时生成生产提示。
+  //创建school组件
+  const school = Vue.extend({
+      // el: '#root', //组件定义时，一定不要写e1配置项，因为最终所有的组件都要被个vm管理，由vm决定服务于哪个组件
+      template:`
+      <div> 
+  		<h2>学校名称: {{schoolName}}</h2> 
+  		<h2>学校地址: {{address}}</h2>
+  	</div> `,
+      data(){
+          return {
+              schoolName:'尚硅谷',
+              address:'北京昌平'
+          }
+      }
+  })
+  
+  //创建student组件
+  const student = Vue.extend({
+      template:`
+      <div> 
+  		<h2>学生姓名: {{ studentName}}</h2>
+  		<h2>学生年龄: {{age}}</h2>
+  	</div> `,
+      data(){
+          return{
+              studentName: '张三',
+              age:18 
+          }
+      }
+  })
+  
+  //创建vm
+  new Vue({
+      el: '#root',
+      //第二步:注册组件(局部注册)
+      components:{
+          xuexiao:school,
+          xuesheng:student
+      }
+  })
+  </script>
+  ~~~
+
+  [运行结果：](https://s1.ax1x.com/2022/05/01/O9RTUJ.png)
+
+  ​                                                                                 [<img src="https://s1.ax1x.com/2022/05/01/O9RTUJ.png" alt="O9RTUJ.png" style="zoom:33%;" />](https://imgtu.com/i/O9RTUJ)
+
+- 总结：
+
+  Vue中使用组件的三大步骤:
+
+  - 定义组件(创建组件)
+  - 注册组件
+  -  使用组件(写组件标签)
+
+  一、如何定义一个组件?
+
+  使用Vue . extend( options )创建，其中options和new Vue( options )时传入的那个options几乎样， 但也有点区别
+  区别如下:
+
+  1. el不要写，最终所有的组件都要经过一个vm的管理，由vm中的el决定服务哪个容器。
+
+  2. data必须写成函数，为什么? -_避 兔组件被复用时，数据存在引用关系。
+  3. 备注：使用template 可以配置组件结构。
+
+  二、如何注册组件?
+
+  1. 局部注册:靠new Vue的时候传入components选项
+  2. 全局注册:靠Vue. component( '组件名'，组件)
+
+  三、编写组件标签: `<school></ school>`
+
+#### 1.2 非单文件组件注意点
+
+1. 关于组件名：
+   一个单词组成：
+
+   - 第一种写法(首 字母小写): school
+   - 第二种写法(首字母大写): School
+
+   多个单词组成:
+
+   - 第一种写 法(kebab-case命 名): my-school 
+   - 第二种写法(CamelCase命名): MySchool ( 需要Vue脚手架支持)
+
+   备注:
+
+   - 组件名尽可能回避HTML中已有的元素名称，例如: h2、 h2都不行。
+   - 可以使用name配置项指定组件在开发者工具中呈现的名字。
+
+2. 关于组件标签：
+
+   - 第一种写法: `<school></ school>`
+   - 第二种写法: `<school/>`
+
+   备注:不用使用脚手架时，`<school/>` 会导致后续组件不能渲染。
+
+3. 一个简写方式：
+   const school = Vue. extend( options)可简写为: const school = options
+
+### 2. 组件的嵌套
+
+> 组件嵌套是将已经定义的组件放到另一个组件的`template`中，而不是放到HTML容器中。注册给谁就要把结构写在他的里面。具体操作如下：
+
+创建父组件和子组件后，将子组件在父组件中注册。Vue实例中只用注册父组件(app)即可。注意：要先创建子组件之后撞见父组件。
+
+~~~JavaScript
+const 子组件 = Vue.extend({
+    template:`
+    <div> 
+		<h2></h2>
+    </div> `    
+})
+
+const 父组件 = Vue.extend({
+    template:`
+    <div> 
+		<h2></h2>
+		<!--将子组件添加到父组件中-->
+		<zi></zi>
+    </div> `,
+    //在父组件中注册子组件
+    components:{
+        zi:子组件
+    }
+})
+
+//创建vm
+new Vue({
+    el: '#root',
+    components:{
+        fu:父组件
+    }
+})
+~~~
+
+
+
+~~~html
+<body>
+    <xuexiao></xuexiao>
+</body>
+<script>
+    Vue.config.productionTip = false //阻止vue在启动时生成生产提示。    
+    //创建student组件
+    const student = Vue.extend({
+        template:`
+    <div> 
+		<h2>学生姓名: {{studentName}}</h2>
+		<h2>学生年龄: {{age}}</h2>
+    </div> `,
+        data(){
+            return{
+                studentName: '张三',
+                age:18 
+            }
+        }
+    })
+
+    //创建school组件
+    const school = Vue.extend({
+        // el: '#root', //组件定义时，一定不要写e1配置项，因为最终所有的组件都要被个vm管理，由vm决定服务于哪个组件
+        template:`
+    <div> 
+		<h2>学校名称: {{schoolName}}</h2> 
+		<h2>学校地址: {{address}}</h2>
+		<xuesheng></xuesheng>
+    </div> `,
+        data(){
+            return {
+                schoolName:'尚硅谷',
+                address:'北京昌平'
+            }
+        },
+        components:{
+            xuesheng:student
+        }
+    })
+
+    //创建app组件
+    const app=Vue.extend({
+        components:{
+            school:school
+        }
+
+    })
+    //创建vm
+    new Vue({
+        el: '#root',
+        template:`
+    <div> 
+		<app></app>
+    </div> `,
+        components:{
+            app:app
+        }
+    })
+</script>
+~~~
+
+> 在上面的代码中，创建了个组件管理由大到小依次是：`app`、`school`、`xuesheng`。简单说就是父子间中定义和控制子组件结构
+
+[组件嵌套结果：](https://s1.ax1x.com/2022/05/02/OiLQgK.png)
+
+​										[<img src="https://s1.ax1x.com/2022/05/02/OiLQgK.png" alt="OiLQgK.png" style="zoom:50%;" />](https://imgtu.com/i/OiLQgK)
+
+### 3. VueComponent构造函数
+
+关于VueComponent:
+1. schoo1组件本质是一个 名为VueComponent的构造函数，且不是程序员定义的，是Vue . extend生成的。
+
+2. 我们只需要写`<schoo1/>`或`<school></schoo1>`, Vue解析时会帮我们J创建school组件的实例对象，即Vue帮我们执行的: 
+
+  new VueComponent(options)。
+
+3. 特别注意:每次调用Vue. extend,返回的都是一一 个全新的VueComponent! ! ! !
+
+4. 关于this指向: 
+   (1) .组件配置中：
+
+   - data函数、methods中的函 数、watch中 的函数、computed中的函数 它们的this均是[ VueComponent实例对象]。
+
+   (2) .new Vue( options )配置中:
+
+   - data函数、methods 中的函数、watch中 的函数、computed中的函 数它们的this均是[Vue实例对象]。
+
+5. VueComponent的实例对象，以后简称vc (也可称之为:组件实例对象)。
+   Vue的实例对象，以后简称vm。
+
+### 4. Vue与VueComponent关系
+
+> 我们之前讲过的prototype原型对象是指每个对象上都有一个`__proto__`隐式对象，该隐式对象总是指向对象缔造者的`__proto__`。最后再指向Object。Vue和VueComponent之间也有这种关系：
+
+[Vue与VueComponent原型关系：](https://s1.ax1x.com/2022/05/02/OFkKXj.png)							[<img src="https://s1.ax1x.com/2022/05/02/OFkKXj.png" alt="OFkKXj.png" style="zoom:50%;" />](https://imgtu.com/i/OFkKXj)
+
+上图中可以总结为：
+
+~~~JavaScript
+VueComponent.prototype.__proto__ === Vue.prototype
+~~~
+
+> 由上图我们可以得出Vue实例对象指向Vue缔造者(Vue原型)的原型对象上，最后指向了Object原型对象
+>
+> 而VueComponent的实例对象先指向缔造者VueComponent的原型对象上，再指向Vue的原型对象，最后才指向了Object对象。
+>
+> 假设我们在VueComponent实例对象上获取一个`a`变量，则会先在VueComponent实例对象上的`__proto__`中找，找不到再到VueComponent原型对象上找，接着是Vue的原型对象，最后才是Object。如果都找不到，则返回`undefind`
+
+~~~html
+<script>
+    //在Vue原型上追加一个值x并初始化为99
+    Vue.prototype.x = 99
+    const app =Vue.extend({
+        components:{
+            school:school
+        },
+        methods: {
+            showX(){
+                console.log(this.x)
+            }
+        }
+    })
+    const vm=new Vue({})
+</script>
+~~~
+
+上面代码`showX()`方法绑定执行后仍然可以输出x的值。
+
+### 5. ==单文件组件==
+
+> 一个文件名字是以.vue结尾，并且里边的内容就是一个组件，这个文件就称作**单文件组件**
+>
+> Vue文件有三个标签元素：`<template>`、`<script>`、`<style>`。他们相当于HTML、Javascript、css结构如下：
+
+~~~vue
+<template>
+<!--组件的结构-->
+</template>
+
+<script>
+//组件交互相关的代码(数据、方法等等)
+</script>
+
+<style>
+/*组件的样式*/
+</style>
+~~~
+
+> 其中如果别人的地方要用到该Vue文件就需要对该文件进行暴露处理，即将`<script>`内的JavaScript代码用默认暴露：
+>
+> `export default`
+
+~~~vue
+<script>
+    export default Vue.extend({})
+</script>
+~~~
+
+Vue案例示例：
+
+- 首先创建一个School.vue文件，然后正常写代码。示例对象要配置name属性，方便`import`导入。`name`属性名尽量和文件名一致。
+
+  ~~~vue
+  <template>
+  <div class=" demo">
+      <h2>学校名称: {{schoolName}}</h2>
+      <h2>学校地址: {{address}}</h2>
+      <button @click=" showName" >点我提示学校名< /button>
+      </div>
+  </template>
+  <script>
+      export default{
+          name:'School',
+          data(){
+              return {
+                  schoolName:'shi',
+                  address:'北京昌平'
+              }
+          },
+          methods:{
+              showName( ){
+                  alert(this.schoolName)
+              }
+          },
+      }
+  </script>
+  ~~~
+
+- 创建一个Student.vue文件
+
+  ~~~vue
+  <template>
+  <div class="demo">
+      <h2>学校姓名: {{Name}}</h2>
+      <h2>学校年龄: {{age}}</h2>
+      <button @click="showName">点我提示学校名</button>
+      </div>
+  </template>
+  <script>
+      export default{
+          name:'Student',
+          data(){
+              return {
+                  Name:'zhang',
+                  age:18
+              }
+          },
+          methods:{
+              showName( ){
+                  alert(this.schoolName)
+              }
+          },
+      }
+  </script>
+  ~~~
+
+- 创建一个App.vue组件，用于汇总所有组件
+
+  ~~~vue
+  <template>
+  <!--组件的结构-->
+  	<School></School>
+  	<Student></Student>
+  </template>
+  
+  <script>
+      //引入组件
+      import School from './School'
+      import Student from './Student '
+      export default {
+          name: 'App',
+          components :{
+              School:School,
+              Student:Student
+          }
+      }
+  </script>
+  
+  <style>
+      /*组件的样式*/
+  </style>
+  ~~~
+
+- 创建也给main.js文件用于控制文件结构
+
+  ~~~JavaScript
+  import App from './App.vue'
+  new Vue({
+      el:'#root',
+      template:`<App></App>`,
+      components: {App},
+  })
+  ~~~
+
+- 创建一个idnex.html文件用于展示页面，同时要想展示页面数据还需要引入`main.js`文件，一般放在`</body>`标签上面，且要有`id='root'`的容器。
+
+  ~~~html
+  <html>
+      <head>
+          <meta charset="UTF-8"/>
+          <title>练习一下单文件组件的语法</title> 
+      </head>
+      <body>
+          <div id="root"></div>
+          <script type="text/javascript" src="../js/vue. js"></script>
+          <script type="text/javascript" src="./main.js"></script>
+      </body>
+  </html>
+  ~~~
+
+以上就是我们单文件组件的结构代码，这里还不能运行因为没有脚手架的支持，浏览器无法识别`import`语句，结构示意图如下：
+
+[单文件结构示意图：](https://s1.ax1x.com/2022/05/03/OAez1x.png)
+
+​										[![OAez1x.png](https://s1.ax1x.com/2022/05/03/OAez1x.png)](https://imgtu.com/i/OAez1x)
+
+> 运行浏览器后打开index.html文件后先加载`main.js`文件，再依次递归执行`App.vue`、`School.vue`、`Student.vue`
+
+## 十六. Vue脚手架的使用
+
+> 脚手架是Vue官方提供的标准化开发工具。负责解析Vue文件，其作用和Tomcat一致。使Vue文件可以在浏览器中运行。首先要下载脚手架：
+
+1. 在cmd窗口中输入，进行全局安装：
+
+   ~~~shell
+   npm install -g @vue/cli
+   ~~~
+
+   如出现下载缓慢请配置npm淘宝镜像:
+
+   ~~~shell
+   npm config set registry https://registry.npm.taobao.org
+   ~~~
+
+2. 切换到你==要创建项目的目录==，然后使用命令创建项目
+
+   ~~~shell
+   vue create xxx
+   ~~~
+
+3. 选择Vue版本
+
+   [Vue版本：]([![OAK7G9.png](https://s1.ax1x.com/2022/05/03/OAK7G9.png)](https://imgtu.com/i/OAK7G9))
+
+   ​												[<img src="https://s1.ax1x.com/2022/05/03/OAK7G9.png" alt="OAK7G9.png" style="zoom:50%;" />](https://imgtu.com/i/OAK7G9)
+
+   [创建项目成功如下：](https://s1.ax1x.com/2022/05/03/OAMAqf.png)
+
+   ​											[<img src="https://s1.ax1x.com/2022/05/03/OAMAqf.png" alt="OAMAqf.png" style="zoom:50%;" />](https://imgtu.com/i/OAMAqf)
+
+4. 运行项目的代码是：
+
+   ~~~shell
+   npm	run	serve
+   ~~~
+
+### 1. Vue脚手架目录说明
+
+- src目录下的
+
+  1. main.js：该文件是整个项目的入口文件，该文加内容说明如下：
+
+     ~~~JavaScript
+     /*
+     该文件是整个项目的入口文件
+     */
+     //引入Vue
+     import Vue from 'vue'
+     //引入App组件，它是所有组件的父组件
+     import App from './App.vue'
+     //关闭vue的生产提示
+     Vue.config.productionTip = false
+     //创建Vue实例对象---Vm 
+     new Vue({
+         el: '#app',
+         //完成了这个功能:将App组件放入容器中
+         render: h => h(App),
+     })
+     ~~~
+
+  2. App.vue：组件管理文件。这里和之前项目中的编写方式一样
+
+  3. assets：资源包，用来放一些静态的资源文件
+
+  4. components：我们平时编写的Vue代码就放在这里
+
+  5. public：这里存放静态的页面，还有一些网页的图标，代码如下：
+
+     ~~~html
+     <head>
+         <meta charset="utf-8">
+         <!--针对工E浏览器的一个特殊配置，含义是让IE浏览器以最高的渲染级别渲染页面-->
+         <meta http- equiv= "X-UA- Compatible" content= "IE=edge">
+         <!-- 开启移动端的理想视口-->
+         <meta name="viewport" content= "width=device -width, initial-scale=1.0">
+         <!-- 配置页签图标-->
+         <link rel="icon" href="<%= BASE URL %>favicon.ico">
+         <!--配置网页标题-->
+         <title> <%= htmlWebpackPlugin.options.title %></title>
+             </head>
+         <html>
+             <body>
+                 <!-- 当浏览器不支持js时noscript中的元素就会被渲染-->
+                 <noscript>
+     				<strong>We're sorry but <%=htmlWebpackPlugin. options.title%></strong>
+                 </noscript>
+                 <!--容器-->
+                 <div id="app"></div>
+                 <!-- built files will be auto injected -->
+             </body>
+         </html>
+     ~~~
+
+[Vue脚手架文件结构图：](https://s1.ax1x.com/2022/05/03/OAdtuF.png)
+
+​																[<img src="https://s1.ax1x.com/2022/05/03/OAdtuF.png" alt="OAdtuF.png" style="zoom: 50%;" />](https://imgtu.com/i/OAdtuF)
+
+### 2. main.js中的render函数
+
+> 我们在脚手架中默认的是残缺的Vue没有模板解析器，所以`template`参数不能用，这里时候我们要不将导入包路径改为`vue/dist/vue.js`，或者可以用内置的`render`函数(推荐)。使用方法如下：
+
+~~~JavaScript
+new Vue({
+    el:"#app",
+    render(createElement){
+        return createElement('Element','value')
+    }
+})
+~~~
+
+该函数参数需要两个：第一个是插入的标签元素的类型，第二个是标签的值(内容)，该函数也可以简化为箭头函数写法：
+
+~~~JavaScript
+render:createElement=>createElement('h1' ,'你好啊')
+~~~
+
+关于不同版本的Vue:
+
+1. vue.js与vue。runtime. xxx.js的区别:
+   - vue.js是完整版的Vue,包含:核心功能+模板解析器。
+   - vue.runtime.xx.js是运行版的Vue,只包含:核心功能;没有模板解析器。
+2. 因为vue . runtime . xXxx. js没有模板解析器，所以不能使用template配置项，需要使用render函数接收到的createElement函数去指定具体内容。
+
+### 3. ref指令
+
+> 在原生的DOM环境下我们采取获取DOM树的方式获取元素对象：`document.getElementById("id")`
+>
+> 上面的方式写起来麻烦，所以我们可以直接用ref指令给标签绑定ID或Class。然后在vc中用`this.ref.idName`的方式获取DOM结构
+
+用法：
+
+~~~html
+Object.$refs.title
+~~~
+
+示例App.js：
+
+~~~html
+<body>
+    <div ref="title" @click="showDOM"></div>
+	<school ref='sch'><school>
+    <script>
+        //引入Schoo1组件
+		import School from './components/School'
+
+        //暴露vc示例对象：
+        export default{
+            methods: {
+                showDOM(){
+                    console. log(this.$refs.title) // 真实DOM元素
+                    console. log(this.$refs.sch) //Schoo1组件 的实例对象(vC)
+                }
+            },
+        }
+    </script>
+</body>
+~~~
+
+ref属性：
+
+1. 被用来给元素或子组件注册引用信息(id的替代者)
+2. 应用在htm1标签上获取的是真实DOM元素，应用在组件标签上是组件实例对象(vc )
+3. 使用方式:
+   - 打标识：`<h1 ref="xxx">.... .</h1>`或`<School ref= "xxx"></School>`
+   - 获取: this. $refs . xxx
 
