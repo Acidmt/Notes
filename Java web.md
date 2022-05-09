@@ -3566,7 +3566,7 @@ ${initParam.参数名}
 
 - User.java
 
-  ~~~jsp
+  ~~~java
   package com.jyroy.javaBean;
   
   public class StudentsBean implements java.io.Serializable{
@@ -3698,7 +3698,7 @@ ${initParam.参数名}
   >
   > class: 代表JavaBean类，如： class="com.Test",引用com包中的Test类
   >
-  > scope：指明了javabean的生存时间
+  > scope：指明了javabean的生存范围
 
 - `<jsp:getProperty>`标签
 
@@ -3717,7 +3717,7 @@ ${initParam.参数名}
   ~~~
 
   > name属性用于指定JavaBean对象的名称。
-  > property属性用于指定JavaBean实例对象的属性名。
+  > property属性用于指定JavaBean实例对象的属性名。其值如果为`*`的意思就是将从页面中收集来的全部信息传递给javabean。
   >
   > value属性用于指定JavaBean对象的某个属性的值，value的值可以是字符串，也可以是表达式。为字符串时，该值会自动转化为JavaBean属性相应的类型，如果value的值是一个表达式，那么该表达式的计算结果必须与所要设置的JavaBean属性的类型一致。
   > param属性用于将JavaBean实例对象的某个属性值设置为一个请求参数值，该属性值同样会自动转换成要设置的JavaBean属性的类型。
@@ -3849,16 +3849,18 @@ ${initParam.参数名}
               </tr>
           <tr>
               <td align="center">
-                  名称：<inputtype="text"name="bookName" 
-                                </td> 
+                  名称：<input type="text"name="bookName">
+              </td> 
           </tr>
           <tr>
               <td align="center">
-                  价格：<input type="text" name="price"> </td>
+                  价格：<input type="text" name="price"> 
+              </td>
           </tr>
           <tr>
               <td align="center">
-                  作者：<input type="text"name="author"> </td>
+                  作者：<input type="text"name="author"> 
+              </td>
           </tr>
           <tr>
               <td align="center" colspan="2">
@@ -3884,7 +3886,12 @@ ${initParam.参数名}
       <body>
           <%request.setCharacterEncoding("UTF-8");%>
           <jsp:useBean id="book" class="cn.itcast.Book" scope="page">
+              <!--这里的*表示将add.jsp页面传递的参数全部传给类示例对象-->
               <jsp:setProperty name="book" property="*"></jsp:setProperty>
+              <!--相当于下面的代码-->
+              <jsp:setProperty name="book" property="bookName"></jsp:setProperty>
+              <jsp:setProperty name="book" property="price"></jsp:setProperty>
+              <jsp:setProperty name="book" property="author"></jsp:setProperty>
           </jsp:useBean>
           <table align="center" width="400">
               <tr>
@@ -3996,14 +4003,12 @@ ${initParam.参数名}
       </head>
       <body>
           <ul style="font-size:20px;">
-              <1i>输入的用户名为：<jsp:getProperty property= "username" name = "username"/>
-              </1i>
-              <1i>&nbsp;&nbsp;&nbsp;是否有效：<jsp:getProperty property ="isval" name = "username"/> </li>
-              <1i>&nbsp;&nbsp;&nbsp;提示信息：<jsp:getProperty property ="tip" name ="username"/>
-              </1i>
+              <1i>输入的用户名为：<jsp:getProperty property= "username" name = "username"/></1i>
+              <1i>&nbsp;&nbsp;&nbsp;是否有效：<jsp:getProperty property ="isval" name ="username"/> </li>
+              <1i>&nbsp;&nbsp;&nbsp;提示信息：<jsp:getProperty property ="tip" name ="username"/></1i>
           </ul>
       </body>
-      </htm1>
+  </html>
   ~~~
 
 启动Tomcat然后访问：http://localhost:8080/Demo/login.jsp访问页面，输出结果如下：
