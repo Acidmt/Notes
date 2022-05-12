@@ -4651,6 +4651,8 @@ mounted() {
 
 ### 3. 使用全局事件总线
 
+> ==谁想用父组件或兄弟组件数据就在谁身上绑定`this.$bus.$on("函数名",回调) `==
+
 - 先在mian.js中安装全局事件总线
 
   ~~~JavaScript
@@ -5600,5 +5602,745 @@ beforeDestroy() {
 </style>
 ~~~
 
+## 二十二. 代理配置
 
+> 代理配置是为了解决跨域问题：跨域问题是由于浏览器的同源政策，协议，端口，域名有一个不同就会造成跨域。比如说发送的异步请求是不同的两个源，就比如是不同的两个协议或者两个不同的域名或者不同的端口
+>
+> 同源策略就是浏览器保护浏览器安全的一种机制，不允许客户端请求从A服务器请求过来的页面往B服务器发送Ajax请求。两个页面地址中的协议，域名，端口号一致，则表示同源。
+>
+> **同源策略限制内容有**：
+>
+> ​    1.储存在浏览器中的数据，如localStroage，cookie和indexdDB不能通过脚本跨域访问
+>
+> ​    2.不能通过脚本操作不同域下的DOM
+>
+> ​    3.不能通过ajax请求不同域的数据
 
+[同源策略原理：](https://s1.ax1x.com/2022/05/11/OdTUy9.png)
+
+​					[<img src="https://s1.ax1x.com/2022/05/11/OdTUy9.png" alt="OdTUy9.png" style="zoom:33%;" />](https://imgtu.com/i/OdTUy9)
+
+以下情况都属于跨域：
+
+[同源策略引起的跨域问题：](https://s1.ax1x.com/2022/05/11/Od7nfO.png)
+
+​									[<img src="https://s1.ax1x.com/2022/05/11/Od7nfO.png" alt="Od7nfO.png" style="zoom:25%;" />](https://imgtu.com/i/Od7nfO)
+
+### 1. 使用配置代理解决跨域问题
+
+> 本案例需要下载axios库`npm install axios`配置参考文档Vue-Cli devServer.proxy
+> vue. config.js是一个可选的配置文件， 如果项目的(和package. json同级的) 根目录中存在这个文件，那么它会被@vue/cli-service 自动加载。你也可以使用package.json中的vue 字段， 但是注意这种写法需要你严格遵照JSON的格式来写。
+
+- 方法一：在vue.config.js中添加如下配置
+
+  ~~~JavaScript
+  module.exports = {
+      devServer:{
+          proxy:"http://localhost:5000"
+      }
+  }
+  ~~~
+
+  说明：
+
+  1. 优点：配置简单，请求资源时直接发给前端(8080)即可
+  2. 缺点：不能配置多个代理，不能灵活控制请求是否走代理。(请求资源时，代理服务器会先在本地查找资源，再到远程去找)
+  3. 工作方式：若按照上述配置代理，当请求了前端不存在的资源时，才会将请求会转发给服务器(优先匹配前端资源)
+
+- 方法二：编写vue.config.js配置具体代理规则
+
+  ~~~JavaScript
+  module.exports = {
+      devServer: {
+          proxy: {
+              '/api1': {								// 匹配所有以 '/api1'开头的请求路径
+                  target: 'http://localhost:5000',	// 代理目标的基础路径
+                  pathRewrite: {'^/api1':''},			// 代理往后端服务器的请求去掉 /api1 前缀
+                  ws: true,							// WebSocket
+                  changeOrigin: true,
+  
+              },
+              '/api2': {
+                  target: 'http://localhost:5001',
+                  pathRewrite: {'^/api2': ''},
+                  changeOrigin: true
+              }
+          }
+      }
+  }
+  /*
+     changeOrigin设置为true时，服务器收到的请求头中的host为：localhost:5000
+     changeOrigin设置为false时，服务器收到的请求头中的host为：localhost:8080
+     changeOrigin默认值为true
+  */
+  ~~~
+
+  说明
+
+  1. 优点：可以配置多个代理，且可以灵活的控制请求是否走代理
+  2. 缺点：配置略微繁琐，请求资源时必须加前缀。如配置上面配置项，想访问5000端口下的student文件就要将`http://localhost:5000/students`改为`http://localhost:8080/api1/students`访问服务器即可。
+
+### 2. 配置多个代理跨域访问服务器
+
+- 配置vue.config.js文件配置代理
+
+  ~~~JavaScript
+  module.exports = {
+      pages: {
+          index: {
+              entry: 'src/main.js',
+          },
+      },
+      lintOnSave:false,
+      // 开启代理服务器（方式一）
+      // devServer: {
+      //     proxy:'http://localhost:5000'
+      // }
+  
+      //开启代理服务器（方式二）
+      devServer: {
+          proxy: {
+              '/api1': {
+                  target: 'http://localhost:5000',
+                  pathRewrite:{'^/api1':''},
+                  // ws: true, //用于支持websocket,默认值为true
+                  // changeOrigin: true //用于控制请求头中的host值,默认值为true
+              },
+              '/api2': {
+                  target: 'http://localhost:5001',
+                  pathRewrite:{'^/api2':''},
+              }
+          }
+      }
+  }
+  ~~~
+
+- 编写App.vue文件用于获取学生和汽车信息
+
+  ~~~vue
+  <template>
+  <div>
+      <button @click="getStudents">获取学生信息</button>
+      <button @click="getCars">获取汽车信息</button>
+      </div>
+  </template>
+  
+  <script>
+      import axios from 'axios'
+      export default {
+          name:'App',
+          methods: {
+              getStudents() {
+                  axios.get('http://localhost:8080/students').then(
+                      response => {
+                          console.log('请求成功了',response.data)
+                      },
+                      error => {
+                          console.log('请求失败了',error.message)
+                      }
+                  )
+              },
+              getCars() {
+                  axios.get('http://localhost:8080/demo/cars').then(
+                      response => {
+                          console.log('请求成功了',response.data)
+                      },
+                      error => {
+                          console.log('请求失败了',error.message)
+                      }
+                  )
+              }
+          },
+      }
+  </script>
+  ~~~
+
+  [配置代理后运行结果：](https://s1.ax1x.com/2022/05/11/OdOq6U.png)
+
+​                             [<img src="https://s1.ax1x.com/2022/05/11/OdOq6U.png" alt="OdOq6U.png" style="zoom: 50%;" />](https://imgtu.com/i/OdOq6U)
+
+从运行结果来看，解决了跨域问题。
+
+### 3. Github用户搜索案例
+
+> 编写一个案例，输入搜索用户名，通过GitHub提供网络接口，远程跨域访问用户数据。
+
+- index.html
+
+  ~~~html
+  <!DOCTYPE html>
+  <html lang="">
+      <head>
+          <meta charset="UTF-8">
+          <!-- 针对IE浏览器的特殊配置，含义是让IE浏览器以最高渲染级别渲染页面 -->
+          <meta http-equiv="X-UA-Compatible" content="IE=edge">
+          <!-- 开启移动端的理想端口 -->
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <!-- 配置页签图标 -->
+          <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+        
+          <!-- 引入bootstrap样式 -->
+          <link rel="stylesheet" href="<%= BASE_URL %>css/bootstrap.css">
+        
+          <!-- 配置网页标题 -->
+          <title><%= htmlWebpackPlugin.options.title %></title>
+      </head>
+      <body>
+          <!-- 容器 -->
+          <div id="app"></div>
+      </body>
+  </html>
+  ~~~
+
+- main.js
+
+  ~~~javascript
+  import Vue from 'vue'
+  import App from './App.vue'
+  
+  Vue.config.productionTip = false
+  
+  new Vue({
+      el:"#app",
+      render: h => h(App),
+      beforeCreate(){
+          Vue.prototype.$bus = this
+      }
+  })
+  ~~~
+
+- App.vue
+
+  ~~~vue
+  <template>
+  <div class="container">
+      <Search/>
+      <List/>
+      </div>
+  </template>
+  
+  <script>
+      import Search from './components/Search.vue'
+      import List from './components/List.vue'
+  
+      export default {
+          name:'App',
+          components:{ Search, List },
+      }
+  </script>
+  ~~~
+
+- Search.vue
+
+  ~~~vue
+  <template>
+  <section class="jumbotron">
+      <h3 class="jumbotron-heading">Search Github Users</h3>
+      <div>
+          <input type="text" placeholder="enter the name you search" v-model="keyWord"/>&nbsp;
+          <button @click="searchUsers">Search</button>
+      </div>
+      </section>
+  </template>
+  
+  <script>
+      import axios from "axios";
+      export default {
+          name: "Search",
+          data() {
+              return {
+                  keyWord: "",
+              };
+          },
+          methods: {
+              searchUsers() {
+                  //请求前更新List的数据
+                  this.$bus.$emit("updateListData", {
+                      isLoading: true,
+                      errMsg: "",
+                      users: [],
+                      isFirst: false,
+                  });
+                  axios.get(`https://api.github.com/search/users?q=${this.keyWord}`).then(
+                      (response) => {
+                          console.log("请求成功了");
+                          this.$bus.$emit("updateListData", {	//请求成功后更新List的数据
+                              isLoading: false,
+                              errMsg: "",
+                              users: response.data.items,
+                          });
+                      },
+                      (error) => {
+                          this.$bus.$emit("updateListData", {	//请求后更新List的数据
+                              isLoading: false,
+                              errMsg: error.message,
+                              users: [],
+                          });
+                      }
+                  );
+              },
+          },
+      };
+  </script>
+  ~~~
+
+- List.vue
+
+  ~~~vue
+  <template>
+  <div class="row">
+      <!-- 展示用户列表 -->
+      <div v-show="info.users.length" class="card" 
+           v-for="user in info.users" :key="user.login">
+          <a :href="user.html_url" target="_blank">
+              <img :src="user.avatar_url" style="width: 100px" />
+      </a>
+          <p class="card-text">{{ user.login }}</p>
+      </div>
+      <!-- 展示欢迎词 -->
+      <h1 v-show="info.isFirst">欢迎使用！</h1>
+      <!-- 展示加载中 -->
+      <h1 v-show="info.isLoading">加载中....</h1>
+      <!-- 展示错误信息 -->
+      <h1 v-show="info.errMsg">{{ info.errMsg }}</h1>
+      </div>
+  </template>
+  
+  <script>
+      export default {
+          name: "List",
+          data() {
+              return {
+                  info: {
+                      isFirst: true,
+                      isLoading: false,
+                      errMsg: "",
+                      users: [],
+                  },
+              };
+          },
+          mounted() {
+              this.$bus.$on("updateListData", (dataObj) => {
+                  this.info = { ...this.info, ...dataObj };
+              });
+          },
+      };
+  </script>
+  
+  <style scoped>
+      .album {min-height: 50rem; /* Can be removed; just added for demo purposes */
+          padding-top: 3rem;padding-bottom: 3rem;background-color: #f7f7f7;}
+      .card {float: left;width: 33.333%;padding: 0.75rem;margin-bottom: 2rem;
+          border: 1px solid #efefef;text-align: center;}
+      .card > img {margin-bottom: 0.75rem;border-radius: 100px;}
+      .card-text {font-size: 85%;}
+  </style>
+  ~~~
+
+  [用户搜索案例运行结果：](https://s1.ax1x.com/2022/05/11/OdXfgK.png)
+
+  ​                 [<img src="https://s1.ax1x.com/2022/05/11/OdXfgK.png" alt="OdXfgK.png" style="zoom:33%;" />](https://imgtu.com/i/OdXfgK)
+
+## 二十三. 插槽
+
+> Vue 实现了一套内容分发的 API，将`<slot>`元素作为承载分发内容的出口，这是vue文档上的说明。具体来说，`<slot>`就是可以让你在组件内添加内容的空间。
+
+### 1. 默认插槽
+
+举个例子：
+
+~~~vue
+//子组件 ：(假设名为：ebutton)
+<template>
+<div class= 'button'>
+    <button>  </button>
+    </div>
+</template>
+
+//父组件：（引用子组件 ebutton）
+<template>
+<div class= 'app'>
+    <ebutton> </ebutton>
+    </div>
+</template>
+~~~
+
+我们知道，如果直接想要在父组件中的`<ebutton></ebutton>` 中添加内容，是不会在页面上渲染的。那么我们如何使添加的内容能够显示呢？在子组件内添加slot 即可。
+
+示例1：
+
+~~~vue
+//子组件 ： (假设名为：ebutton)
+<template>
+<div class= 'button'>
+    <button></button>
+    <!--slot 可以放在任意位置。（这个位置就是父组件添加内容的显示位置）-->
+    <slot></slot>      
+    </div> 
+</template>
+~~~
+
+> 子组件可以在任意位置添加slot , 这个位置就是父组件添加内容的显示位置。
+
+示例2：
+
+~~~vue
+父组件中：
+        <Category>
+           <div>html结构1</div>
+        </Category>
+子组件中：Category
+        <template>
+            <div>
+               <!-- 定义插槽 -->
+               <slot>插槽默认内容...</slot>
+            </div>
+        </template>
+~~~
+
+### 2. 具名插槽
+
+> 有时候，也许子组件内的slot不止一个，那么我们如何在父组件中，精确的在想要的位置，插入对应的内容,这时候给插槽命一个名即可，即添加name属性。如果不添加，子组件中有几个`<slot>`就将元素全部放入。
+
+示例1：
+
+~~~vue
+父组件中：
+        <Category>
+            <template slot="center">
+              <div>html结构1</div>
+            </template>
+
+            <template v-slot:footer>
+               <div>html结构2</div>
+            </template>
+        </Category>
+子组件中：
+        <template>
+            <div>
+               <!-- 定义插槽 -->
+               <slot name="center">插槽默认内容...</slot>
+               <slot name="footer">插槽默认内容...</slot>
+            </div>
+        </template>
+~~~
+
+> 上面会将`结构1`与`结构2`放入下方的15和16行代码中
+>
+> 当然 vue 为了方便，书写 v-slot:one 的形式时，可以简写为 #one
+
+### 3. 作用域插槽 
+
+> 通过slot 我们可以在父组件为子组件添加内容，通过给slot命名的方式，我们可以添加不止一个位置的内容。但是我们添加的数据都是父组件内的。即子组件中的数据我们用不到。有的场景我们必须通过子组件中的数据来进行操作。
+>
+> 作用域插槽允许你传递一个模板而不是已经渲染好的元素给插槽。之所以叫做”作用域“插槽，是因为模板虽然是在父级作用域中渲染的，却能拿到子组件的数据。
+
+例如，带有作用域插槽的组件 `child` 大概是下面这个样子：
+
+~~~vue
+<div>
+    <slot my-prop="Hello from child"></slot>
+</div>
+~~~
+
+使用这个组件的父组件将会在插槽中声明一个 `template` 元素。这个模板元素会有一个 `scope` （译者注：Vue 2.6 后改为 `v-slot` 属性）属性指向一个对象，任何添加到插槽（位于子组件模板）中的属性都会作为这个对象的属性。
+
+~~~vue
+<child>
+  <template scope="props">
+    <span>Hello from parent</span>
+    <span>{{ props.my-prop }}</span>
+  </template>
+</child>
+~~~
+
+将会渲染成：
+
+~~~html
+<div>
+    <span>Hello from parent</span>
+    <span>Hello from child</span>
+</div>
+~~~
+
+其具体结构如下：
+
+~~~vue
+父组件中：
+        <Category>
+            <template scope="scopeData">
+                <!-- 生成的是ul列表 -->
+                <ul>
+                  <li v-for="g in scopeData.games" :key="g">{{g}}</li>
+                </ul>
+            </template>
+        </Category>
+
+        <Category>
+            <template slot-scope="scopeData">
+                <!-- 生成的是h4标题 -->
+                <h4 v-for="g in scopeData.games" :key="g">{{g}}</h4>
+            </template>
+        </Category>
+子组件中：
+        <template>
+            <div>
+                <slot :games="games"></slot>
+            </div>
+        </template>
+		
+        <script>
+            export default {
+                name:'Category',
+                props:['title'],
+                //数据在子组件自身
+                data() {
+                    return {
+                        games:['红色警戒','穿越火线','劲舞团','超级玛丽']
+                    }
+                },
+            }
+        </script>
+~~~
+
+### 4. 三种插槽具体案例
+
+- 默认插槽
+  App.vue
+
+  ~~~vue
+  <template>
+  	<div class="container">
+  		<Category title="美食" >
+  			<img src="https://s3.ax1x.com/2021/01/16/srJlq0.jpg" alt="">
+  		</Category>
+  
+  		<Category title="游戏" >
+  			<ul>
+  				<li v-for="(g,index) in games" :key="index">{{g}}</li>
+  			</ul>
+  		</Category>
+  
+  		<Category title="电影">
+  			<video controls src="http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4"></video>
+  		</Category>
+  	</div>
+  </template>
+  
+  <script>
+  	import Category from './components/Category'
+  	export default {
+  		name:'App',
+  		components:{ Category },
+  		data() {
+  			return {
+  				foods:['火锅','烧烤','小龙虾','牛排'],
+  				games:['红色警戒','穿越火线','劲舞团','超级玛丽'],
+  				films:['《教父》','《拆弹专家》','《你好，李焕英》','《尚硅谷》']
+  			}
+  		},
+  	}
+  </script>
+  
+  <style scoped>.container{display: flex;justify-content: space-around;}</style>
+  ~~~
+
+  Category.vue
+
+  ~~~vue
+  <template>
+  	<div class="category">
+  		<h3>{{ title }}分类</h3>
+  		<!-- 定义一个插槽（挖个坑，等着组件的使用者进行填充） -->
+  		<slot>我是一些默认值，当使用者没有传递具体结构时，我会出现</slot>
+  	</div>
+  </template>
+  
+  <script>
+  	export default {
+  		name:'Category',
+  		props:['title']
+  	}
+  </script>
+  
+  <style scoped>
+  	.category {background-color: skyblue;width: 200px;height: 300px;}
+  	h3 {text-align: center;background-color: orange;}
+  	video {width: 100%;}
+  	img {width: 100%;}
+  </style>
+  ~~~
+
+  [默认插槽运行结果：](https://s1.ax1x.com/2022/05/12/O0rNqg.png)                                  [<img src="https://s1.ax1x.com/2022/05/12/O0rNqg.png" alt="O0rNqg.png" style="zoom:50%;" />](https://imgtu.com/i/O0rNqg)
+
+- 具名插槽
+  App.vue
+
+  ~~~vue
+  <template>
+  	<div class="container">
+  		<Category title="美食" >
+  			<img slot="conter" src="https://s3.ax1x.com/2021/01/16/srJlq0.jpg" alt="">
+  			<a slot="footer" href="http://www.atguigu.com">更多美食</a>
+  		</Category>
+  
+  		<Category title="游戏" >
+  			<ul slot="center">
+  				<li v-for="(g,index) in games" :key="index">{{g}}</li>
+  			</ul>
+  			<div class="foot" slot="footer">
+  				<a href="http://www.atguigu.com">单机游戏</a>
+  				<a href="http://www.atguigu.com">网络游戏</a>
+  			</div>
+  		</Category>
+  
+  		<Category title="电影">
+  			<video slot="center" controls src="http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4"></video>
+  			<template v-slot:footer>
+  				<div class="foot">
+  					<a href="http://www.atguigu.com">经典</a>
+  					<a href="http://www.atguigu.com">热门</a>
+  					<a href="http://www.atguigu.com">推荐</a>
+  				</div>
+  				<h4>欢迎前来观影</h4>
+  			</template>
+  		</Category>
+  	</div>
+  </template>
+  
+  <script>
+  	import Category from './components/Category'
+  	export default {
+  		name:'App',
+  		components:{Category},
+  		data() {
+  			return {
+  				foods:['火锅','烧烤','小龙虾','牛排'],
+  				games:['红色警戒','穿越火线','劲舞团','超级玛丽'],
+  				films:['《教父》','《拆弹专家》','《你好，李焕英》','《尚硅谷》']
+  			}
+  		},
+  	}
+  </script>
+  
+  <style scoped>
+  	.container,.foot{display: flex;justify-content: space-around;}
+  	h4{text-align: center;}
+  </style>
+  ~~~
+
+  Category.vue
+
+  ~~~vue
+  <template>
+  	<div class="category">
+  		<h3>{{title}}分类</h3>
+  		<!-- 定义一个插槽（挖个坑，等着组件的使用者进行填充） -->
+  		<slot name="center">我是一些默认值，当使用者没有传递具体结构时，我会出现1</slot>
+  		<slot name="footer">我是一些默认值，当使用者没有传递具体结构时，我会出现2</slot>
+  	</div>
+  </template>
+  
+  <script>
+  	export default {
+  		name:'Category',
+  		props:['title']
+  	}
+  </script>
+  
+  <style scoped>
+  	.category{background-color: skyblue;width: 200px;height: 300px;}
+  	h3{text-align: center;background-color: orange;}
+  	video{width: 100%;}
+  	img{width: 100%;}
+  </style>
+  ~~~
+
+  [具名插槽运行结果：](https://s1.ax1x.com/2022/05/12/O0r7QK.png)
+
+  ​             [<img src="https://s1.ax1x.com/2022/05/12/O0r7QK.png" alt="O0r7QK.png" style="zoom:50%;" />](https://imgtu.com/i/O0r7QK)
+
+- 作用域插槽
+  App.vue
+
+  ~~~vue
+  <template>
+  	<div class="container">
+  
+  		<Category title="游戏">
+  			<template scope="atguigu">
+  				<ul>
+  					<li v-for="(g,index) in atguigu.games" :key="index">{{g}}</li>
+  				</ul>
+  			</template>
+  		</Category>
+  
+  		<Category title="游戏">
+  			<template scope="{games}">
+  				<ol>
+  					<li style="color:red" v-for="(g,index) in games" :key="index">{{g}}</li>
+  				</ol>
+  			</template>
+  		</Category>
+  
+  		<Category title="游戏">
+  			<template slot-scope="{games}">
+  				<h4 v-for="(g,index) in games" :key="index">{{g}}</h4>
+  			</template>
+  		</Category>
+  	</div>
+  </template>
+  
+  <script>
+  	import Category from './components/Category'
+  	export default {
+  		name:'App',
+  		components:{ Category },
+  	}
+  </script>
+  
+  <style scoped>
+  	.container,.foot{display: flex;justify-content: space-around;}
+  	h4{text-align: center;}
+  </style>
+  ~~~
+
+  Category.vue
+
+  ~~~vue
+  <template>
+  	<div class="category">
+  		<h3>{{title}}分类</h3>
+  		<slot :games="games" msg="hello">我是默认的一些内容</slot>
+  	</div>
+  </template>
+  
+  <script>
+  	export default {
+  		name:'Category',
+  		props:['title'],
+  		data() {
+  			return {
+  				games:['红色警戒','穿越火线','劲舞团','超级玛丽'],
+  			}
+  		},
+  	}
+  </script>
+  
+  <style scoped>
+  	.category{background-color: skyblue;width: 200px;height: 300px;}
+  	h3{text-align: center;background-color: orange;}
+  	video{width: 100%;}
+    img{width: 100%;}
+  </style>
+  ~~~
+
+  [作用域插槽运行结果：](https://s1.ax1x.com/2022/05/12/O0spSP.png)
+
+  ​                           <img src="https://s1.ax1x.com/2022/05/12/O0spSP.png" alt="O0spSP.png" style="zoom:50%;" />](https://imgtu.com/i/O0spSP)
+
+## 二十四. ==Vuex技术==
+
+> 概念：专门在Vue中实现集中式状态(数据)管理的一个Vue插件，对vue应用中多个组件的共享状态进行集中式的管理(读/写) ,也是一种组件间通信的方式，且适用于任意组件间通信。
+>
+> 使用情景：多个组件依赖于同一状态、来自不同组件的行为需要变更同一状态。

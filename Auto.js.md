@@ -409,11 +409,11 @@ if(!requestscreenCapture(){
 threads.start(function(){
     //在新线程执行的代码
     while(true){
-        if(text('立即开始'). find0nce()) {
-            text('立即开始'). findOnce().click()
+        if(text('立即开始').find0nce()) {
+            text('立即开始').findOnce().click()
             break;
         }else{
-            sleep( 3000)
+            sleep(3000)
         }
     }
 });

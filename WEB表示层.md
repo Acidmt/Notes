@@ -2200,7 +2200,7 @@ function abs(x,y,...rest){
 > 调用对象的属性我们采取	对象名.属性名	的格式
 
 ~~~JavaScript
-console.log (obj.uname) ;
+console.log (obj.uname);
 ~~~
 
 > 调用属性还有一种方法	对象名['属性名']	的格式。
