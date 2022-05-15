@@ -4460,7 +4460,7 @@ ${initParam.参数名}
 
 ## 十一. Servlet高级特性
 
-> 在Servlet高级特性中，Filter被称为过滤器，它位于客户端和处理程序之间，能够对请求和响应进行检查和修改，通常将请求拦截后进行一些通用操作，例如，过滤一些敏感词汇，统一进行字符编码和实施安全控制等。Filter好比现实中的污水净化设备，专门用于过滤污水杂志。
+> 在Servlet高级特性中，Filter被称为过滤器，它位于客户端和处理程序之间，能够对请求和响应进行检查和修改，通常将请求拦截后进行一些通用操作，例如，过滤一些敏感词汇，统一进行字符编码和实施安全控制等。Filter好比现实中的污水净化设备，专门用于过滤污水杂质。
 
 [Filter原理图：](https://s1.ax1x.com/2022/04/01/q5mjot.png)
 
@@ -4541,8 +4541,8 @@ FilterChain接口
 
   ~~~java
   import java.io,*;
-  importjavax.servlet.Filter;
-  importjavax.servlet.*;
+  import javax.servlet.Filter;
+  import javax.servlet.*;
   import javax.servlet.annotation.WebFilter;
   @WebFilter(filterName ="MyFilter",urlPatterns="/MyServlet") 
   public class MyFilter implements Filter {
@@ -4612,8 +4612,8 @@ FilterChain接口
 
   ~~~java
   import java.io.;
-  importjavax.servlet.*;
-  importjavax.servlet.annotation.WebFilter;
+  import javax.servlet.*;
+  import javax.servlet.annotation.WebFilter;
   @WebFilter(filterName="MyFilter01",urlPatterns ="/MyServlet")
   public class MyFilter01 implements Filter{
       public void init(FilterConfig fConfig) throws ServletException {
@@ -4637,8 +4637,8 @@ FilterChain接口
 
   ~~~java
   import java.io.;
-  importjavax.servlet.*;
-  importjavax.servlet.annotation.WebFilter;
+  import javax.servlet.*;
+  import javax.servlet.annotation.WebFilter;
   @WebFilter(filterName="MyFilter02",urlPatterns ="/MyServlet")
   public class MyFilter01 implements Filter{
       public void init(FilterConfig fConfig) throws ServletException {
@@ -4708,8 +4708,8 @@ FilterChain接口
 
   ~~~java
   import java.io.;
-  importjavax.servlet.*;
-  importjavax.servlet.annotation.WebFilter;
+  import javax.servlet.*;
+  import javax.servlet.annotation.WebFilter;
   @WebFilter(filterName="MyFilter02",urlPatterns ="/Servlet/show")
   public class MyFilter01 implements Filter{
       public void init(FilterConfig fConfig) throws ServletException {
@@ -4721,7 +4721,7 @@ FilterChain接口
           response . setCharacterEncoding("utf-8"); 
           response. setContentType("text/html; charset=UTF-8");
           System. out . print1n( "CharacterEncodingFilter执行前....");
-          chain. doFilter(request, response); //让我们的请求继续走，如果不写，程序到这里就被拦截挝
+          chain. doFilter(request, response); //让我们的请求继续走，如果不写，程序到这里就被拦截
           System. out . print1n("CharacterEncodingFilter执行后....");
   
       } 
@@ -4783,7 +4783,7 @@ FilterChain接口
   public class OnlineCountListener implements HttpSessionListener {
       //创建session监听:看你的 -举-动
       //一旦创建Session就会触发一次这个事件!
-          public void sessionCreated(HttpSessionEvent se) {
+      public void sessionCreated(HttpSessionEvent se) {
           ServletContext ctx = se. getSession() . getServletContext();
           System. out . println(se . getSession(). getId());
           Integer onlineCount = (Integer) ctx . getAttribute( name: "OnlineCount" );
@@ -4954,7 +4954,7 @@ FilterChain接口
           HttpServletRequest request = (HttpServletRequest) req; 
           HttpServletResponse response = (HttpServletResponse) resp;
           //判断用户是否已经登陆
-          if (request.getSession().getAttribute(Constant.USER_SESSION)==nu11){
+          if (request.getSession().getAttribute(Constant.USER_SESSION)==null){
               response.sendRedirect( location: "/error.jsp");
               chain. doFilter(request,response);
           } 

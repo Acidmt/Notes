@@ -2581,6 +2581,8 @@ temp = null;
 
 ​							[<img src="https://s4.ax1x.com/2021/12/05/oDOQPS.png" alt="oDOQPS.png" style="zoom: 67%;" />](https://imgtu.com/i/oDOQPS)
 
+补充：[JavaScript中{...}的作用：](https://www.php.cn/js-tutorial-483543.html#:~:text=%E5%9C%A8JavaScr,e%E2%80%9D%E7%9A%84%E6%96%B9%E5%BC%8F%E5%B1%95%E5%BC%80%E3%80%82)
+
 ## 四. Web APIs
 
 ### 1. Web APIs和JS基础关联性 

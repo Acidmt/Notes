@@ -5902,7 +5902,7 @@ beforeDestroy() {
       <!-- 展示加载中 -->
       <h1 v-show="info.isLoading">加载中....</h1>
       <!-- 展示错误信息 -->
-      <h1 v-show="info.errMsg">{{ info.errMsg }}</h1>
+      <h1 v-show="info.errMsg">{{info.errMsg}}</h1>
       </div>
   </template>
   
@@ -6341,6 +6341,744 @@ beforeDestroy() {
 
 ## 二十四. ==Vuex技术==
 
-> 概念：专门在Vue中实现集中式状态(数据)管理的一个Vue插件，对vue应用中多个组件的共享状态进行集中式的管理(读/写) ,也是一种组件间通信的方式，且适用于任意组件间通信。
+> 概念：专门在Vue中实现集中式状态(数据)管理的一个Vue插件，对vue应用中多个组件的共享状态进行集中式的管理(读/写) ,也是一种组件间通信的方式，且适用于任意组件间通信。`状态==数据`
 >
 > 使用情景：多个组件依赖于同一状态、来自不同组件的行为需要变更同一状态。
+
+### 1. Vuex的工作原理
+
+> Vuex是专门为Vue服务，用于管理页面的数据状态、提供统一数据操作的状态管理系统，相当于数据库mongoDB，MySQL等，只不过它的数据是存储在内存中，页面刷新即消失。
+
+[Vuex工作流程图：](https://s1.ax1x.com/2022/05/13/OsBo9A.png)
+
+​								[<img src="https://s1.ax1x.com/2022/05/13/OsBo9A.png" alt="OsBo9A.png" style="zoom: 33%;" />](https://imgtu.com/i/OsBo9A)
+
+> 上面的`Actions`、`Mutations`、`State`三个数据类型都是`Object`类型。他们由一个共同的对象领导：`store`。所以调用灰色部分的四个方法(`commit`、`mutate`、`render`、`dispatch`)要用`store.commit()`的形式调用。并且是从`Vue Components`开始，绕一圈。三个对象具体使用情况如下：
+
+|  对象名   |                      描述                      |
+| :-------: | :--------------------------------------------: |
+|  actions  | 用于响应组件中的动作，dispatch方法用于和它对话 |
+| mutations |      用于操作数据，commit方法用于和它对话      |
+|   state   |      用于存储数据，mutate方法用于和它对话      |
+
+### 2. 搭建Vuex环境
+
+- 使用如下命令安装Vuex：
+
+  ~~~shell
+  npm i vuex
+  ~~~
+
+  > 这里要注意的是，Vue在2022年将默认版本更新为Vue3，此时Vuex也更新到了4.0版本，而vuex4.0只能供Vue3使用。所以在Vue2中只能用Vuex3版本。
+
+  如果使用Vue2要使用以下命令安装：
+
+  ~~~shell
+  npm i vuex@3
+  ~~~
+
+- 由于三个对象(`Actions`、`Mutations`、`State`)都归`store`管理分配，所以创建一个文件用于使用最核心的`store`。
+
+  index.js
+
+  ~~~javascript
+  import Vue from 'vue'
+  import Vuex from 'vuex'	// 引入Vuex
+  
+  Vue.use(Vuex)	// 应用Vuex插件
+  
+  const actions = {}		// 准备actions——用于响应组件中的动作
+  const mutations = {}	// 准备mutations——用于操作数据（state）
+  const state = {}			// 准备state——用于存储数据
+  
+  // 创建并暴露store
+  export default new Vuex.Store({
+      //actions:actions
+      actions,
+      //mutations:mutations
+      mutations,
+      //state:state
+      state,
+  })
+  ~~~
+
+- 在main.js中创建vm时传入`store`配置项
+
+  ~~~JavaScript
+  import Vue from 'vue'
+  import App from './App.vue'
+  import store from './store'	// 引入store
+  
+  Vue.config.productionTip = false
+  
+  new Vue({
+      el: '#app',
+      render: h => h(App),
+      //store:store,
+      store,										// 配置项添加store
+      beforeCreate() {
+          Vue.prototype.$bus = this
+      }
+  })
+  ~~~
+
+### 3. 编写一个求和案例初步了解Vuex
+
+> 编写一个能在页面进行选择求和的案例。
+
+[编写需求：](https://s1.ax1x.com/2022/05/13/Os2SdP.png)
+
+​												[<img src="https://s1.ax1x.com/2022/05/13/Os2SdP.png" alt="Os2SdP.png" style="zoom:50%;" />](https://imgtu.com/i/Os2SdP)
+
+#### 3.1 先使用Vue编写方便和Vuex做对比
+
+- 编写App.vue文件
+
+  ~~~vue
+  <template>
+  <div>
+      <Count/>
+      </div>
+  </template>
+  
+  <script>
+      import Count from "./components/Count.vue";
+  
+      export default {
+          name: "App",
+          components: { Count },
+      };
+  </script>
+  ~~~
+
+- 编写Cout.vue文件实现网页求和
+
+  ~~~vue
+  <template>
+  <div>
+      <h2>当前求和为：{{ sum }}</h2>
+      <select v-model.number="n">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+      </select>
+      <button @click="increment">+</button>
+      <button @click="decrement">-</button>
+      <button @click="incrementOdd">当前求和为奇数再加</button>
+      <button @click="incrementWait">等一等再加</button>
+      </div>
+  </template>
+  
+  <script>
+      export default {
+          name: "Count",
+          data() {
+              return {
+                  sum: 0, // 当前的和
+                  n: 1, // 用户选择的数字
+              };
+          },
+          methods: {
+              increment() {
+                  this.sum += this.n;
+              },
+              decrement() {
+                  this.sum -= this.n;
+              },
+              incrementOdd() {
+                  if (this.sum % 2) {
+                      this.sum += this.n;
+                  }
+              },
+              incrementWait() {
+                  setTimeout(() => {
+                      this.sum += this.n;
+                  }, 500);
+              },
+          },
+      };
+  </script>
+  
+  <style>
+      button {margin-left: 5px;}
+  </style>
+  ~~~
+
+  > 上面代码四个方法分别对应：+number、-number、当前求和为奇数再加、等一等再加这四个功能。其中的`option`中的值用于和n值绑定，代表用户选择的数字。
+
+#### 3.2 使用Vuex编写Cout案例
+
+> 1. 初始化数据state ,配置actions、mutations ,操作文件store.js
+> 2. 组件中读取vuex中的数据`$store.state.数据`
+> 3. 组件中修改vuex 中的数据`$store.dispatch('action中的方法名',数据)`或`$store.commit('mutations中的方法名' ,数据)`
+>    若没有网络请求或其他业务逻辑，组件中也可越过actions即不写dispatch ，直接编写commit。
+
+- 首先编写index.js
+
+  ~~~JavaScript
+  import Vue from 'vue'
+  import Vuex from 'vuex'	// 引入Vuex
+  
+  Vue.use(Vuex)	// 应用Vuex插件
+  
+  // 准备actions——用于响应组件中的动作
+  const actions = {
+      /* jia(context,value){
+  		console.log('actions中的jia被调用了')
+  		context.commit('JIA',value)
+  	},
+  	jian(context,value){
+  		console.log('actions中的jian被调用了')
+  		context.commit('JIAN',value)
+  	}, */
+      jiaOdd(context,value){	// context 相当于精简版的 $store
+          console.log('actions中的jiaOdd被调用了')
+          if(context.state.sum % 2){
+              context.commit('JIA',value)
+          }
+      },
+      jiaWait(context,value){
+          console.log('actions中的jiaWait被调用了')
+          setTimeout(()=>{
+              context.commit('JIA',value)
+          },500)
+      }
+  }
+  // 准备mutations——用于操作数据（state）
+  const mutations = {
+      JIA(state,value){
+          console.log('mutations中的JIA被调用了')
+          state.sum += value
+      },
+      JIAN(state,value){
+          console.log('mutations中的JIAN被调用了')
+          state.sum -= value
+      }
+  }
+  // 准备state——用于存储数据
+  const state = {
+      sum:0 //当前的和
+  }
+  
+  // 创建并暴露store
+  export default new Vuex.Store({
+      actions,
+      mutations,
+      state,
+  })
+  ~~~
+
+- 编写Cout.vue
+
+  ~~~vue
+  <template>
+  <div>
+      <h1>当前求和为：{{ $store.state.sum }}</h1>
+      <select v-model.number="n">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+      </select>
+      <button @click="increment">+</button>
+      <button @click="decrement">-</button>
+      <button @click="incrementOdd">当前求和为奇数再加</button>
+      <button @click="incrementWait">等一等再加</button>
+      </div>
+  </template>
+  
+  <script>
+      export default {
+          name:'Count',
+          data() {
+              return {
+                  n:1, //用户选择的数字
+              }
+          },
+          methods: {
+              //这两个使用commit方法是因为，不需要actions做判断。
+              increment(){
+                  this.$store.commit('JIA',this.n)
+              },
+              decrement(){
+                  this.$store.commit('JIAN',this.n)
+              },
+              incrementOdd(){
+                  this.$store.dispatch('jiaOdd',this.n)
+              },
+              incrementWait(){
+                  this.$store.dispatch('jiaWait',this.n)
+              },
+          }
+      }
+  </script>
+  
+  <style lang="css">button{margin-left: 5px;}</style>
+  
+  ~~~
+
+  [运行结果：](https://s1.ax1x.com/2022/05/13/Os2SdP.png)
+
+  ​												[<img src="https://s1.ax1x.com/2022/05/13/Os2SdP.png" alt="Os2SdP.png" style="zoom:50%;" />](https://imgtu.com/i/Os2SdP)
+
+### 4. getters配置项
+
+> 由于`computed`配置项只能用于单个组件，如果想让所有组件都用到计算属性，那么我们就要配置全局计算，store下的`getters`配置项就是配置一个所有组件都可以获取到的全局计算属性。
+>
+> 使用场景：当state中的数据需要经过加工后再使用时，可以使用getters加工。
+>
+> 读取方法是：`$store.getters.方法名`
+
+配置方法是在store配置项中追加getters配置项
+
+~~~JavaScript
+......
+
+const getters = {
+    bigSum(state){
+        return state.sum * 10
+    }
+}
+
+// 创建并暴露store
+export default new Vuex.Store({
+    ......
+    getters
+})
+~~~
+
+- 修改组件求和案例，使其每次加1的同时还可以扩大10倍
+
+  ~~~JavaScript
+  //index.js
+  
+  import Vue from 'vue'	// 引入Vue核心库
+  import Vuex from 'vuex'	// 引入Vuex
+  
+  Vue.use(Vuex)	// 应用Vuex插件
+  
+  // 准备actions对象——响应组件中用户的动作
+  const actions = {
+      addOdd(context,value){
+          console.log("actions中的addOdd被调用了")
+          if(context.state.sum % 2){context.commit('ADD',value)}
+      },
+      addWait(context,value){
+          console.log("actions中的addWait被调用了")
+          setTimeout(()=>{context.commit('ADD',value)},500)
+      },
+  }
+  // 准备mutations对象——修改state中的数据
+  const mutations = {
+      ADD(state,value){state.sum += value},
+      SUBTRACT(state,value){state.sum -= value}
+  }
+  // 准备state对象——保存具体的数据
+  const state = {
+      sum:0 // 当前的和
+  }
+  // 准备getters对象——用于将state中的数据进行加工
+  const getters = {
+      bigSum(){
+          return state.sum * 10
+      }
+  }
+  
+  //创建并暴露store
+  export default new Vuex.Store({
+      actions,
+      mutations,
+      state,
+      getters
+  })
+  ~~~
+
+- 修改Cout.vue使其可以调用store上的gettings方法将值扩大10倍
+
+  ~~~vue
+  <template>
+  	<div>
+  		<h1>当前求和为：{{ $store.state.sum }}</h1>
+  		<h3>当前求和的10倍为：{{ $store.getters.bigSum }}</h3>
+  		<select v-model.number="n">
+  			<option value="1">1</option>
+  			<option value="2">2</option>
+  			<option value="3">3</option>
+  		</select>
+  		<button @click="increment">+</button>
+  		<button @click="decrement">-</button>
+  		<button @click="incrementOdd">当前求和为奇数再加</button>
+  		<button @click="incrementWait">等一等再加</button>
+  	</div>
+  </template>
+  
+  <script>
+  	export default {
+  		name:'Count',
+  		data() {
+  			return {
+  				n:1,
+  			}
+  		},
+  		methods: {
+  			increment(){this.$store.commit('ADD',this.n)},
+  			decrement(){this.$store.commit('SUBTRACT',this.n)},
+  			incrementOdd(){this.$store.dispatch('addOdd',this.n)},
+  			incrementWait(){this.$store.dispatch('addWait',this.n)},
+  		},
+  	}
+  </script>
+  
+  <style>button{margin-left: 5px;}</style>
+  ~~~
+
+  [gettings配置项运行结果：](https://s1.ax1x.com/2022/05/14/O6IcuT.png)
+
+  ​                                                      [<img src="https://s1.ax1x.com/2022/05/14/O6IcuT.png" alt="O6IcuT.png" style="zoom:50%;" />](https://imgtu.com/i/O6IcuT)
+
+### 5. 四个Map方法
+
+> Vuex提供了四个Map方法用于简化代码。下面是他们的使用及介绍。
+
+|      方法名      |                             描述                             |
+| :--------------: | :----------------------------------------------------------: |
+|   **mapState**   |         是用于帮助我们映射`state`中的数据为计算属性          |
+|  **mapGetters**  |            用于帮助映射getters中的数据为计算属性             |
+|  **mapActions**  | 用于帮助我们生成与`actions`对话的方法，即：包含`$store.dispatch(xxx)`的函数`getters`中的数据为计算属性； |
+| **mapMutations** | 用于帮助我们生成与`mutations`对话的方法，即：包含`$store.commit(xxx)`的函数 |
+
+> 我们之前写的代码中`<h1>当前求和为：{{ $store.state.sum }}</h1>`显然插值语法中的表达式太长，不符合规范。我们可以在`computed`属性中书写几个方法，简化插值语法：
+
+~~~JavaScript
+computed:{
+    //靠程序员自己亲自去写计算属性:
+    sum(){
+        return this.$store.state.sum
+    },
+    bigSum(){
+        return this.$store.getters.bigSum
+    },
+}
+~~~
+
+此时我们就可以将`Cout.vue`上方的插值语法改为
+
+~~~html
+<h1>当前求和为: {{sum}}</h1>
+<h3>当前求和放大10倍为: {{bigSum}}</h3>
+~~~
+
+> 我们可以看到虽然实现了方法，但代码冗余量高，组件多的情况下不好维护。所以Vuex给我们提供了Map映射方法。下面是四个方法写法：我们用下面方法替代上面的写法。
+
+在使用之前要先导入
+
+~~~JavaScript
+import {mapState,mapGetters，mapMutations，mapActions} from 'vuex'
+~~~
+
+- **mapState方法：**用于帮助我们映射`state`中的数据为计算属性
+
+  ~~~javascript
+  computed: {
+      //借助mapState生成计算属性：sum、school、subject（对象写法）
+       ...mapState({sum:'sum',school:'school',subject:'subject'}),
+      //等同于以下代码
+       sum(){
+          return this.$store.state.sum
+      },   
+       school(){
+          return this.$store.state.school
+      }, 
+      subject(){
+          return this.$store.state.subject
+      },     
+      //借助mapState生成计算属性：sum、school、subject（数组写法）
+      ...mapState(['sum','school','subject']),
+  },
+  ~~~
+
+  ==提示：{...}的用法是将`mapState`中的每一组key和value都展开放在`computed`中==
+
+  数组写法中名字要和main.js中的数据和方法名对应。
+
+- **mapGetters方法：**用于帮助我们映射`getters`中的数据为计算属性
+
+  ~~~JavaScript
+  computed: {
+      //借助mapGetters生成计算属性：bigSum（对象写法）
+      ...mapGetters({bigSum:'bigSum'}),
+  
+      //借助mapGetters生成计算属性：bigSum（数组写法）
+      ...mapGetters(['bigSum'])
+  },
+  ~~~
+
+- **mapActions方法：**用于帮助我们生成与`actions`对话的方法，即：包含`$store.dispatch(xxx)`的函数。
+
+  ~~~JavaScript
+  methods:{
+      //靠mapActions生成：incrementOdd、incrementWait（对象形式）
+      ...mapActions({incrementOdd:'jiaOdd',incrementWait:'jiaWait'})
+  
+      //靠mapActions生成：incrementOdd、incrementWait（数组形式）
+      ...mapActions(['jiaOdd','jiaWait'])
+  }
+  ~~~
+
+- **mapMutations方法：**用于帮助我们生成与`mutations`对话的方法，即：包含`$store.commit(xxx)`的函数，传递数据时，要注意插值语法中必须传递参数：`<button @click="increment(n)">+</button>`
+
+  ~~~JavaScript
+  methods:{
+      //靠mapActions生成：increment、decrement（对象形式）
+      ...mapMutations({increment:'JIA',decrement:'JIAN'}),
+      //等同于以下代码：
+      increment(){
+          this.$store.commit('JIA',this.n)//这里的n要在插值语法调用时传入
+      }, 
+      decrement(){
+          this.$store.commit('JIAN',this.n)
+      },
+      //靠mapMutations生成：JIA、JIAN（对象形式）
+      ...mapMutations(['JIA','JIAN']),
+  }
+  ~~~
+
+完整代码
+
+Cout.vue
+
+~~~vue
+<template>
+	<div>
+		<h1>当前求和为：{{ sum }}</h1>
+		<h3>当前求和的10倍为：{{ bigSum }}</h3>
+		<h3>我是{{name}}，我在{{ school }}学习</h3>
+		<select v-model.number="n">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+		</select>
+		<button @click="increment(n)">+</button>
+		<button @click="decrement(n)">-</button>
+		<button @click="addOdd(n)">当前求和为奇数再加</button>
+		<button @click="addWait(n)">等一等再加</button>
+	</div>
+</template>
+
+<script>
+	import {mapState, mapGetters, mapMutations, mapActions} from 'vuex'	//导入
+
+	export default {
+		name: 'Count',
+		data() {
+			return {
+				n:1, //用户选择的数字
+			}
+		},
+  computed: {		
+			...mapState(['sum','school','name']),
+			...mapGetters(['bigSum'])
+		},
+		methods: {
+			...mapMutations({increment:'ADD', decrement:'SUBTRACT'}),
+			...mapActions(['addOdd', 'addWait'])
+		},
+	}
+</script>
+
+<style>
+	button{
+		margin-left: 5px;
+	}
+</style>
+~~~
+
+[运行结果：](https://s1.ax1x.com/2022/05/13/Os2SdP.png)
+
+​												[<img src="https://s1.ax1x.com/2022/05/13/Os2SdP.png" alt="Os2SdP.png" style="zoom:50%;" />](https://imgtu.com/i/Os2SdP)
+
+### 6. 多组件共享数据案例
+
+- App.vue
+
+  ~~~vue
+  <template>
+    <div>
+      <Count/><hr/>
+      <Person/>
+    </div>
+  </template>
+  
+  <script>
+  import Count from "./components/Count.vue";
+  import Person from "./components/Person.vue";
+  
+  export default {
+    name: "App",
+    components: { Count, Person },
+  };
+  </script>
+  ~~~
+
+- index.js
+
+  ~~~javascript
+  import Vue from 'vue'
+  import Vuex from 'vuex'
+  
+  Vue.use(Vuex)
+  
+  const actions = {
+  	jiaOdd(context,value){
+  		console.log('actions中的jiaOdd被调用了')
+  		if(context.state.sum % 2){
+  			context.commit('JIA',value)
+  		}
+  	},
+  	jiaWait(context,value){
+  		console.log('actions中的jiaWait被调用了')
+  		setTimeout(()=>{
+  			context.commit('JIA',value)
+  		},500)
+  	}
+  }
+  
+  //准备mutations——用于操作数据（state）
+  const mutations = {
+  	JIA(state,value){
+  		console.log('mutations中的JIA被调用了')
+  		state.sum += value
+  	},
+  	JIAN(state,value){
+  		console.log('mutations中的JIAN被调用了')
+  		state.sum -= value
+  	},
+  	ADD_PERSON(state,value){
+  		console.log('mutations中的ADD_PERSON被调用了')
+  		state.personList.unshift(value)
+  	}
+  }
+  
+  //准备state——用于存储数据
+  const state = {
+  	sum: 0,
+  	school: '尚硅谷',
+  	subject: '前端',
+  	personList: []
+  }
+  
+  //准备getters——用于将state中的数据进行加工
+  const getters = {
+  	bigSum(state){
+  		return state.sum*10
+  	}
+  }
+  
+  //创建并暴露store
+  export default new Vuex.Store({
+  	actions,
+  	mutations,
+  	state,
+  	getters
+  })
+  ~~~
+
+- Count.vue
+
+  ~~~vue
+  <template>
+  	<div>
+  		<h1>当前求和为：{{ sum }}</h1>
+  		<h3>当前求和放大10倍为：{{ bigSum }}</h3>
+  		<h3>我在{{ school }}，学习{{ subject }}</h3>
+  		<h3 style="color:red">Person组件的总人数是：{{ personList.length }}</h3>
+  		<select v-model.number="n">
+  			<option value="1">1</option>
+  			<option value="2">2</option>
+  			<option value="3">3</option>
+  		</select>
+  		<button @click="increment(n)">+</button>
+  		<button @click="decrement(n)">-</button>
+  		<button @click="incrementOdd(n)">当前求和为奇数再加</button>
+  		<button @click="incrementWait(n)">等一等再加</button>
+  	</div>
+  </template>
+  
+  <script>
+  	import {mapState,mapGetters,mapMutations,mapActions} from 'vuex'
+  	export default {
+  		name:'Count',
+  		data() {
+  			return {
+  				n:1, //用户选择的数字
+  			}
+  		},
+  		computed:{
+  			...mapState(['sum','school','subject','personList']),
+  			...mapGetters(['bigSum'])
+  		},
+  		methods: {
+  			...mapMutations({increment:'JIA',decrement:'JIAN'}),
+  			...mapActions({incrementOdd:'jiaOdd',incrementWait:'jiaWait'})
+  		}
+  	}
+  </script>
+  
+  <style lang="css">button{margin-left: 5px;}</style>
+  ~~~
+
+- Person.vue
+
+  ~~~vue
+  <template>
+  	<div>
+  		<h1>当前求和为：{{ sum }}</h1>
+  		<h3>当前求和放大10倍为：{{ bigSum }}</h3>
+  		<h3>我在{{ school }}，学习{{ subject }}</h3>
+  		<h3 style="color:red">Person组件的总人数是：{{ personList.length }}</h3>
+  		<select v-model.number="n">
+  			<option value="1">1</option>
+  			<option value="2">2</option>
+  			<option value="3">3</option>
+  		</select>
+  		<button @click="increment(n)">+</button>
+  		<button @click="decrement(n)">-</button>
+  		<button @click="incrementOdd(n)">当前求和为奇数再加</button>
+  		<button @click="incrementWait(n)">等一等再加</button>
+  	</div>
+  </template>
+  
+  <script>
+  	import {mapState,mapGetters,mapMutations,mapActions} from 'vuex'
+  	export default {
+  		name:'Count',
+  		data() {
+  			return {
+  				n:1, //用户选择的数字
+  			}
+  		},
+  		computed:{
+  			...mapState(['sum','school','subject','personList']),
+  			...mapGetters(['bigSum'])
+  		},
+  		methods: {
+  			...mapMutations({increment:'JIA',decrement:'JIAN'}),
+  			...mapActions({incrementOdd:'jiaOdd',incrementWait:'jiaWait'})
+  		}
+  	}
+  </script>
+  
+  <style lang="css">button{margin-left: 5px;}</style>
+  ~~~
+
+[多组件数据共享运行结果：](https://s1.ax1x.com/2022/05/14/Ochaod.png)
+
+​																			[<img src="https://s1.ax1x.com/2022/05/14/Ochaod.png" alt="Ochaod.png" style="zoom:33%;" />](https://imgtu.com/i/Ochaod)
+
+### 7. Vuex模块化+命名空间
+
+### 											
+
+
+
+
+
