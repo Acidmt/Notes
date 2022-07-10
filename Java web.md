@@ -1990,7 +1990,7 @@ forward(ServletRequest request,ServletResponse response)
       resp. setCharacterEncoding("utf-8"); 
       PrintWriter out = resp. getWriter();
       //Cookie,服务器端从客户端获取;
-      Cookie[] cookies = req.getCookies(); //这 里返回数组，说明Cookie 可能存在多个
+      Cookie[] cookies = req.getCookies(); //这里返回数组，说明Cookie 可能存在多个
       //判断iCookie是否存在
       if (cookies !=nu1l){
           //如果存在怎么办
@@ -3428,6 +3428,8 @@ ${initParam.参数名}
 
 三种标签综合案例
 
+> 由于JSTL中没有类似的else标签，==所以我们可以用`<choose>`标签替代。==
+
 ~~~jsp
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
@@ -3507,7 +3509,7 @@ ${initParam.参数名}
         </c:forEach>
         <%
         Map userMap = new HashMap();
-        userMap.put("Tom"，"123") ;
+        userMap.put("Tom","123") ;
         userMap.put("Lina", "123") ;
         userMap.put("Make","123");
         %>
@@ -4733,6 +4735,12 @@ FilterChain接口
 
 启动Tomcat输入：http://localhost:8080/Demo/show网页此时会显示乱码。当输入：http://localhost:8080/Demo/Servlet/show时网页会输出：`你好 世界`。
 
+#### 1.6 Filter实现网页多个监听
+
+~~~java
+@WebFilter(urlPatterns = { "/AddServlet","/qiantai/order.jsp","/RemoveServlet", "/UserOrderingServlet" })
+~~~
+
 ### 2. Listener监听
 
 > 在web开发中Servlet提供了Listener(监听器)，专门用于监听Servlet时间。Listener在监听过程中会涉及几个重要的组成部分。具体如下：
@@ -4746,7 +4754,7 @@ FilterChain接口
 >
 > 1. 将监听器绑定到事件源，也就是注册监听器
 > 2. 监听器监听到的事件发生时，会调用监听器的成员方法，将事件对象传递给事件处理器，即触发事件处理器。
-> 3. 事件处理器通过事件对象获得事件源，并对事件源进行处理。、
+> 3. 事件处理器通过事件对象获得事件源，并对事件源进行处理。
 
 #### 2.1 Listener API
 
@@ -5008,6 +5016,8 @@ FilterChain接口
 
 - 步骤如下
 
+  在插件商店下载：database插件
+
   [JDBC连接数据库步骤：](https://s1.ax1x.com/2022/04/06/qjGjpt.png)
 
   ​                                               [<img src="https://s1.ax1x.com/2022/04/06/qjGjpt.png" alt="qjGjpt.png" style="zoom: 50%;" />](https://imgtu.com/i/qjGjpt)
@@ -5121,7 +5131,7 @@ ResultSet接口中定义了大量的getter()方法，而采用哪种getter()方�
 
 ### 2. 实现JDBC接口
 
-通常JDBC实现需要实现一下几个步骤：
+通常JDBC实现需要实现以下几个步骤：
 
 1. 加载并注册数据库驱动
 
@@ -5236,10 +5246,10 @@ ResultSet接口中定义了大量的getter()方法，而采用哪种getter()方�
   import java.sql.DriverManager;
   import java.sql.ResultSet;
   import java.sql.SQLException;
-  importjava.sql.Statement;
+  import java.sql.Statement;
   import java.sql,Date;
   public class Example01{
-      public static void main(Stringl) args)throws SQLException{
+      public static void main(String[] args)throws SQLException{
           Statement stmt = null;
           ResultSet rs = null;
           Connection conn = null;
@@ -5250,14 +5260,14 @@ ResultSet接口中定义了大量的getter()方法，而采用哪种getter()方�
               string url ="jdbc:mysql://localhost:3306/jdbc?serverTimezone=GMT2B8";
               String username= "root";
               String password ="root";
-              conn DriverManager.getConnection (url, username, password);
+              conn=DriverManager.getConnection (url, username, password);
               // 3.通过Connection对象获取 Statement对象
               stmt=conn.createStatement();
               // 4.使用 Statement 执行 SQL语句
-              String sql="selectfrom users";
+              String sql="select * from users";
               rs= stmt.executeQuery(sql);
               //5、操作ResultSet 结果集 
-              System.out.printin("id | name | password | email | birthday");
+              System.out.printin("id|name|password|email|birthday");
               while (rs.next()){
                   int id =rs.qetInt("id");//通过列名获取指定字段的值
                   String name = ts.getString("name");
@@ -5271,7 +5281,7 @@ ResultSet接口中定义了大量的getter()方法，而采用哪种getter()方�
               e.printStackTrace();
           }finallyl{
               // 6.回收数据库资源
-              if(rs！=null){
+              if(rs!=null){
                   try {
                       rs.close();
                   } catch (SQLException e){
@@ -5338,7 +5348,7 @@ ResultSet接口中定义了大量的getter()方法，而采用哪种getter()方�
               // 创建应用程序与数据库连接的Connection对象
               conn = DriverManager.getConnection (url, username, password);
               //执行的SQL语句
-              String sql ="INSERT INTO users (name,password,email,birthday)"+ "VALUES(?,?, ?, ?) ";
+              String sql ="INSERT INTO users (name,password,email,birthday)"+"VALUES(?,?,?,?)";
               // 1.创建执行SQL语句的PreparedStatement对象
               preStmt = conn.prepareStatement(sql);
               // 2.为SQL语句中的参数赋值
@@ -5383,7 +5393,7 @@ ResultSet接口中定义了大量的getter()方法，而采用哪种getter()方�
 
 ### 5. ResultSet对象
 
-> ResultSet对象主要用于存储结果集，可以通过next()方法由前向后逐个获取结果集中的数据，如果向获取结果集中任意位置的数据，则需要在创建Statement对象时设置两个ResultSet定义的常量，具体设置方法如下：
+> ResultSet对象主要用于存储结果集，可以通过next()方法由前向后逐个获取结果集中的数据，如果想获取结果集中任意位置的数据，则需要在创建Statement对象时设置两个ResultSet定义的常量，具体设置方法如下：
 
 ~~~java
 Statement st=coon.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_READ_ONLY);
@@ -5528,7 +5538,7 @@ ResultSet rs=st.excuteQuery(sql);
           String url ="jdbc:mysql://localhost:3306/jdbc?serverTimezone";
           String username ="root";
           String password ="root";
-          Connection conn = DriverManager.getConnection(url,usernamer password);
+          Connection conn = DriverManager.getConnection(url,username,password);
           return conn;
       }
   
@@ -5593,7 +5603,7 @@ ResultSet rs=st.excuteQuery(sql);
               stmt =conn.createStatement();
               //发送SQL语句
               SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd") ;
-              String birthday = sdf,format(user.getBirthday());
+              String birthday = sdf.format(user.getBirthday());
               String sql ="INSERT INTO users(id,name,password,email,birthday"+"VALUES("+user.getId()
                   +"','"+user.getUsername ()+"','"+user.getPassword()+"','"+user.getEmail()+"','"
                   +birthday+"')'";
@@ -5643,7 +5653,7 @@ ResultSet rs=st.excuteQuery(sql);
           }
           return null;
       }
-      //根据 id查找指定的user
+      //根据id查找指定的user
       public User find(int id){
           Connection conn = null;
           Statement stmt = null;
@@ -5990,99 +6000,107 @@ ResultSet rs=st.excuteQuery(sql);
 - **编写用于实现登录类型的servlet**，在包下创建一个名为LoginServlet.java类，用于封装用户的登录信息并对用户信息进行校验。
 
   ~~~java
-  package cn.itcast;
-  import javax.serviet.ServletException;
-  import javax.servlet.annotation.webServlet;
-  import javax.servlet.http.HttpServiet;
-  import javax.sezviet:http.HctpservletRequest;
-  import javax.servIet.http.ittpservletResponse;
-  import java.io.printWriter;
+  package com.Login.cn;
+  
+  import javax.servlet.ServletException;
+  import javax.servlet.annotation.WebServlet;
+  import javax.servlet.http.HttpServlet;
+  import javax.servlet.http.HttpServletRequest;
+  import javax.servlet.http.HttpServletResponse;
   import java.io.IOException;
+  import java.io.PrintWriter;
   import java.sql.*;
   import java.util.ArrayList;
   import java.util.List;
-  @WebServlet(name="LoginServlet",urlPatterns="/LoginServlet")
-  public class LoginServlet extends HttpServlet {
-      protected void dopost (HttpServletRequest request, HttpServletResponse
-                             response)throws ServletException, IOException{
-          //设置请求编码、响应方式和编码方式
-          request.setCharacterEncoding("UTF-8");
-          response.setCharacterEncoding("UTE-8");
-          response.setContentType("text/html");
-          PrintWriter out = response.getWriter();
-          Connection conn = null;
-          Statement st = null;
-          ResultSet rs = null;
-          PreparedStatement ptst = null;
-          //获取登录页面提交的数据
-          String loginName = request.getParameter("username");
-          String loginPassword = request,getParameter("password");
-          //sql 语句
-          String selectUsername = "select username from tb_user";
-          String selectPassword = "select password from tb_user where username =?";
-          try {
-              //获取与数据库的连接
-              conn = new GetConnection().getConnection();
-              //遍历to user表，将数据库中所有username存入集合中
-              st = conn.createStatement();
-              rs = st.executeQuery(selectUsername);
-              List<String> usernameList -new ArrayList<String>();
-              while (rs.next()){
-                  usernameList.add(rs.getString(1)); 
-              }
-              //关闭连接
-              if(ra !=nu1l){
-                  rs.close(); 
-              }
-              if(st != null){
-                  st.close(); 
-              }
-              //判断集合中是否存在所要登录的username
-              if (usernameList.contains(loginName)){
-                  //查找username对应的password
-                  List<String> passwordList =new ArrayList<String>(); 
-                  ptst =(PreparedStatement)conn.prepareStatement(selectPassword);
-                  //设置ptst参数
-                  ptst.setString(1, loginName);
-                  rs = ptst.executeQuery();
-                  while (rs.next)){
-                      passwordList.add(rs.getString(1));
+  @WebServlet(name = "LoginServlet", urlPatterns = "/LoginServlet")
+  public class Dao {
+      public class LoginServlet extends HttpServlet {
+          protected void dopost(HttpServletRequest request, HttpServletResponse
+                  response) throws ServletException, IOException {
+              //设置请求编码、响应方式和编码方式
+              request.setCharacterEncoding("UTF-8");
+              response.setCharacterEncoding("UTF-8");
+              response.setContentType("text/html");
+              PrintWriter out = response.getWriter();
+              Connection conn = null;
+              Statement st = null;
+              ResultSet rs = null;
+              PreparedStatement ptst = null;
+              //获取登录页面提交的数据
+              String loginName = request.getParameter("name");
+              String loginPassword = request.getParameter("password");
+              //sql 语句
+              String selectUsername = "select username from tb_user";
+              String selectPassword = "select password from tb_user where username =?";
+              try {
+                  //获取与数据库的连接
+                  conn = new GetConnection().getConnection();
+                  //遍历tb_user表，将数据库中所有username存入集合中
+                  st = conn.createStatement();
+                  rs = st.executeQuery(selectUsername);
+                  List<String> usernameList = new ArrayList<String>();
+                  while (true) {
+                      try {
+                          if (!rs.next()) break;
+                      } catch (SQLException e) {
+                          e.printStackTrace();
+                      }
+                      usernameList.add(rs.getString(1));
                   }
-                  //判断数据库与登录页面提交的password是否一致
-                  if (passwordList.get(0).equals(loginPassword)){
-                      out.print1n("欢迎登录。");
-                  }else{
-                      out.println("密码错误，请重新输入。");
-                  }
-                  if(rs != null){
+                  //关闭连接
+                  if (rs != null) {
                       rs.close();
                   }
-                  if(ptst != null){
-                      ptst.close(); 
+                  if (st != null) {
+                      st.close();
                   }
-              }else{
-                  out.println("用户名不存在"); 
+                  //判断集合中是否存在所要登录的username
+                  if (usernameList.contains(loginName)) {
+                      //查找username对应的password
+                      List<String> passwordList = new ArrayList<String>();
+                      ptst = (PreparedStatement) conn.prepareStatement(selectPassword);
+                      //设置ptst参数
+                      ptst.setString(1, loginName);
+                      rs = ptst.executeQuery();
+                      while (rs.next()) {
+                          passwordList.add(rs.getString(1));
+                      }
+                      //判断数据库与登录页面提交的password是否一致
+                      if (passwordList.get(0).equals(loginPassword)) {
+                          out.println("欢迎登录。");
+                      } else {
+                          out.println("密码错误，请重新输入。");
+                      }
+                      if (rs != null) {
+                          rs.close();
+                      }
+                      if (ptst != null) {
+                          ptst.close();
+                      }
+                  } else {
+                      out.println("用户名不存在");
+                  }
+              } catch (ClassNotFoundException e) {
+                  e.printStackTrace();
+              } catch (SQLException e) {
+                  e.printStackTrace();
+              } finally {
+                  //关闭连接
+                  if (conn != null) {
+                      try {
+                          conn.close();
+                      } catch (SQLException e) {
+                          e.printStackTrace();
+                      }
+                  }
               }
-          }catch (ClassNotFoundException e){
-              e.printStackTrace(); 
-          }catch (SQLException e){
-              e.printStackTrace(); 
-          }finally{
-              //关闭连接
-              if (conn!= null){
-                  try {
-                      conn.close();  
-                  }catch (SQLException e){
-                      e.printStackTrace();  
-                  }
-              } 
+              out.flush();
+              out.close();
           }
-          out.flush();
-          out.close();
       }
   }
   ~~~
-
+  
   > 第17~19行代码设置请求编码、响应方式和编码方式。第26行和第27行代码获取用户输入的用户名、密码等属性的值。第29行和第30行代码用于从数据库中查询是否有该用户的信息第35`~`40行代码遍历tb_user表，将数据库中所有的username存入集合中。第42`~`71行代码判断集合中是否含有登录的用户名，如果有，则判断密码是否正确，密码正确则输出"欢迎登录"，否则提示"密码错误，请重新登录"。如果用户名不存在则提示"用户名不存在"。
 
 运行项目启动Tomcat，并在浏览器中输入：http://localhost/Demo/login.jsp，进入用户登录界面，并输入用户名和密码。`用户名：张三，密码：123`。登录成功如下所示：
@@ -7938,6 +7956,22 @@ $.ajax(option)
 [index运行结果：](https://s1.ax1x.com/2022/04/22/L2LmGt.jpg)
 
 ​									[<img src="https://s1.ax1x.com/2022/04/22/L2LmGt.jpg" alt="L2LmGt.jpg" style="zoom: 33%;" />](https://imgtu.com/i/L2LmGt)
+
+## 十六. 构建项目WAR包
+
+- 首先要配置pom.xml文件：
+
+  [配置pom文件：](https://s1.ax1x.com/2022/05/26/XAslSf.png)	
+
+  ​				[<img src="https://s1.ax1x.com/2022/05/26/XAslSf.png" alt="XAslSf.png" style="zoom:50%;" />](https://imgtu.com/i/XAslSf)
+
+- 之后运行构建war包
+  [构建war包：](https://s1.ax1x.com/2022/05/26/XAsdf0.png)
+                                 [<img src="https://s1.ax1x.com/2022/05/26/XAsdf0.png" alt="XAsdf0.png" style="zoom:50%;" />](https://imgtu.com/i/XAsdf0)
+
+
+
+
 
 
 

@@ -2812,7 +2812,7 @@ var zxy = document . getElementById('zxy');
 var img = document . querySelector('img');
 // 2.注册事件 处理程序
 zxy .onclick = function() {
-	img.srp ='images/zxy.jpg';
+	img.src ='images/zxy.jpg';
 	img.title = 'hello';
 }
 ldh.onclick = function() {
