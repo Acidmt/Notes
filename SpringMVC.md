@@ -872,4 +872,642 @@ SpringMVC
   username:admin,password:123456
   ~~~
 
+
+## 2. 通过控制器方法的形参获取请求参数
+
+> 在控制器方法的形参位置，设置和请求参数同名的形参，当浏览器发送请求，匹配到请求映射时，在DispatcherServlet中就会将请求参数赋值给相应的形参
+
+- 在index.html中添加链接
+
+  ~~~html
+  <a th:href="@{/testParam(username='admin',password=123456)}">测试获取请求参数-->/testParam</a><br>
+  ~~~
+
+- 在HelloController.java类中获取参数
+
+  ~~~java
+  @RequestMapping("/testParam")
+  public String testParam(String username, String password){
+      System.out.println("username:"+username+",password:"+password);
+      return "success";
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  username:admin,password:123456
+  ~~~
+
+- 传递多个请求参数
+
+  > 注：
+  >
+  > 1. 若请求所传输的请求参数中有多个同名的请求参数，此时可以在控制器方法的形参中设置字符串数组或者字符串类型的形参接收此请求参数
+  >
+  > 2. 若使用字符串数组类型的形参，此参数的数组中包含了每一个数据
+  >
+  > 3. 若使用字符串类型的形参，此参数的值为每个数据中间使用逗号拼接的结果
+
+  - index.html中编写form表单
+
+    ~~~html
+    <form th:action="@{/testParam}" method="get" >
+        用户名: <input type="text" name="username"><br>
+        密码: <input type=" password" name="password"><br>
+        爱好: <input type="checkbox" name="hobby" va1ue="a">a
+        <input type=" checkbox" name="hobby" value="b">b
+        <input type= "checkbox" name="hobby" value="c">c<br>
+        <input type=" submit" value="提交">
+    </form>
+    ~~~
+
+  - 在HelloController.java类中使用字符获取多个参数
+
+    ~~~java
+    @RequestMapping("/testParam")
+    public String testParam(String username, String password,String hobby){
+        System.out.println("username:"+username+",password:"+password+",hobby:"+hobby);
+        return "success";
+    }
+    ~~~
+
+    运行结果：
+
+    ~~~shell
+    username:admin,password:123,hobby:a,b,c
+    ~~~
+
+  - 在HelloController.java类中使用数组获取多个参数
+
+    ~~~java
+    @RequestMapping("/testParam")
+    public String testParam(String username, String password,String[] hobby){
+        System.out.println("username:"+username+
+                           ",password:"+password+
+                           ",hobby:"+Arrays.toString(hobby));
+        return "success";
+    }
+    ~~~
+
+    运行结果：
+
+    ~~~shell
+    username:admin,password:123,hobby:[a, b, c]
+    ~~~
+
+## 3. 注解处理请求参数和控制器方法的形参的映射关系
+
+> 这里有三个注解：@RequestParam、@RequestHeader、@CookieValue
+>
+> 他们分别表示：请求参数和控制器方法的形参创建映射关系、请求头信息和控制器方法的形参创建映射关系、将cookie数据和控制器方法的形参创建映射关系
+
+### 3.1 @RequestParam注解
+
+> 这里要用到@RequestParam注解：
+>
+> 1. 该注解是将请求参数和控制器方法的形参创建映射关系。如将方法的形参username匹配请求参数中的user_name的值
+> 2. @RequestParam注解一共有三个属性
+
+@RequestParam注解三个属性：
+
+|    属性名    |                             描述                             |
+| :----------: | :----------------------------------------------------------: |
+|    value     |               指定为形参赋值的请求参数的参数名               |
+|   required   |           设置是否必须传输此请求参数，默认值为true           |
+| defaultValue | 不管required属性值为true或false，当value所指定的请求参数没有传输或传输的值为""时，则使用默认值为形参赋值 |
+
+> 若required设置为true时，则当前请求必须传输value所指定的请求参数，若没有传输该请求参数，且没有设置defaultValue属性，则页面报错400：Required String parameter ‘xxx’ is not present；
+>
+> 若设置为false，则当前请求不是必须传输value所指定的请求参数，若没有传输，则注解所标识的形参的值为null
+
+- 修改index.html中参数属性名
+
+  ~~~html
+  <form th:action="@{/testParam}" method="get" >
+      用户名: <input type="text" name="user_name"><br>
+      密码: <input type=" password" name="password"><br>
+      爱好: <input type="checkbox" name="hobby" va1ue="a">a
+      <input type=" checkbox" name="hobby" value="b">b
+      <input type= "checkbox" name="hobby" value="c">c<br>
+      <input type=" submit" value="提交">
+  </form>
+  ~~~
+
+  > 第二行username改为user_name
+
+- 在HelloController.java类中使用@RequestParam匹配参数
+
+  ~~~java
+  @RequestMapping("/testParam")
+  public String testParam(@RequestParam(value="user_name",required=false,defaultValue="lisi")String username, 
+                          String password,
+                          String[] hobby){
+      System.out.println("username:"+username+
+                         ",password:"+password+
+                         ",hobby:"+Arrays.toString(hobby);
+      return "success";
+  }
+  ~~~
+
+  此时形参username就可以匹配到user_name的值了
+
+  传递username参数运行结果：
+
+  ~~~shell
+  username:admin,password:123,hobby:[a, b, c]
+  ~~~
+
+  不传递username参数，不设置defaultValue值运行结果：
+
+  ~~~shell
+  username:null,password:123,hobby:[a, b, c]
+  ~~~
+
+  不传递username参数，设置defaultValue值运行结果：
+
+  ~~~shell
+  username:lisi,password:123,hobby:[a, b, c]
+  ~~~
+
+### 3.2 @RequestHeader注解
+
+> 1. 将请求头信息和控制器方法的形参创建映射关系
+> 2. 注解一共有三个属性：value、required、defaultValue，用法同@RequestParam
+
+- 在HelloController.java类中使用@RequestHeader匹配参数
+
+  ~~~java
+  @RequestMapping("/testParam")
+  public String testParam(@RequestParam(value="user_name",required=false,defaultValue="lisi")String username, 
+                          String password,
+                          String[] hobby,
+                         @RequestHeader(value="Host",required="false",defaultValue="kong")String host){
+      System.out.println("host:"+host);
+      return "success";
+  }
+  ~~~
+
+  > 上面的第5行代码是将请求头中的Host属性的值复制给host参数。
+
+  运行结果：
+
+  ~~~shell
+  host:localhost:8080
+  ~~~
+
+### 3.3 @CookieValue注解
+
+> 1. 将cookie数据和控制器方法的形参创建映射关系
+> 2. 注解一共有三个属性：value、required、defaultValue，用法同@RequestParam
+
+- 在HelloController.java类中创建又给session模拟cookie(创建session时会将一个属性名为JSESSIONID的属性存在cookie中)
+
+  ~~~java
+  @RequestMapping("/testServ1etAPI")
+  //形参位置的request表示当前请求
+  public string testServletAPI(HttpServletRequest request){
+      HttpSession session = request.getSession();
+      return "success";
+  }
   
+  @RequestMapping("/testParam")
+  public String testParam(@RequestParam(value="user_name",required=false,defaultValue="lisi")String username, 
+                          String password,
+                          String[] hobby,
+                         @RequestHeader(value="Host",required="false",defaultValue="kong")String host,
+                         @CookieValue(value="JSESSIONID")String sessionid){
+      System.out.println("sessionid:"+sessionid);
+      return "success";
+  }
+  ~~~
+
+- index.html不用动
+
+  ~~~html
+  <a th:href="@{/testPath(username='admin',password=123456)}">
+      测试@RequestMapping支持路径中的占位符-->/testPath
+  </a><br>
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  sessionid:PBE437229E25FA34093EAC709CFBE4E1
+  ~~~
+
+## 4. 通过POJO获取请求参数
+
+> 可以在控制器方法的形参位置设置一个实体类类型的形参，此时若浏览器传输的请求参数的参数名和实体类中的属性名一致，那么请求参数就会为此属性赋值
+
+- 在index.html中编写一个表单
+
+  ~~~html
+  <form th:action="@{/testpojo}" method="post">
+      用户名：<input type="text" name="username"><br>
+      密码：<input type="password" name="password"><br>
+      性别：<input type="radio" name="sex" value="男">男<input type="radio" name="sex" value="女">女<br>
+      年龄：<input type="text" name="age"><br>
+      邮箱：<input type="text" name="email"><br>
+      <input type="submit">
+  </form>
+  ~~~
+
+- 创建实体类User.java
+
+  > 注意实体类中的字段要和表单中的字段对应。
+
+- 在HelloController.java类中接收表单提交的参数
+
+  ~~~java
+  @RequestMapping("/testBean")
+  public string testBean(User user,User userInfo){
+      System.out.println(user);
+      return "success";
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  User{id=null, username='admin',password='123',age=23,sex='男',email='123@qq.com'}
+  ~~~
+
+  > 注意：userInfo对象输出结果和user一样，这表示SpirngMVC的控制器会把实体参数默认传给多个形参。
+
+## ==5. 解决获取请求参数的乱码问题==(编码过滤器)
+
+> 在SpringMVC中处理乱码问题，不能通过request对象设置字符集解决，因为在字符集生效之前，SpringMVC的前端控制器DispatcherServlet已经获取上下文。所以我们只能通过==监听器(最早进行初始化)或这过滤器来进行设置==，一般都是用过滤器。SpringMVC中已经提供过滤器方法，所以我们只需要在web.xml进行配置就可以使用。
+
+- 配置web.xml设置编码
+
+  ~~~xml
+  <!--配置springMVC的编码过滤器-->
+  <filter>
+      <filter-name>CharacterEncodingFilter</filter-name>
+      <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+      <!--设置请求编码-->
+      <init-param>
+          <param-name>encoding</param-name>
+          <param-value>UTF-8</param-value>
+      </init-param>
+      <!--设置响应编码-->
+      <init-param>
+          <param-name>forceResponseEncoding</param-name>
+          <param-value>true</param-value>
+      </init-param>
+  </filter>
+  <filter-mapping>
+      <filter-name>CharacterEncodingFilter</filter-name>
+      <url-pattern>/*</url-pattern>
+  </filter-mapping>
+  ~~~
+
+# 四. 域对象获取共享数据
+
+四种域对象
+
+|     对象名     |                             描述                             |
+| :------------: | :----------------------------------------------------------: |
+|  pageContext   |                  page域，范围是一个jsp页面                   |
+|    request     |                        范围是一次会话                        |
+|    session     | 范围是浏览器窗口关闭，与服务器是否关闭没有关系(因为有活化和钝化) |
+| ServletContext |     范围是整个服务器开启到关闭，与浏览器是否关闭没有关系     |
+
+## 1. request域对象共享数据
+
+### 1.1 使用ServletAPI向request域对象共享数据
+
+- 在index.html中创建链接访问
+
+  ~~~html
+  <body>
+      <h1>首页</h1>
+      <a th:href="@{/testRequesitByServletAPI}">通过servletAPI向request域对象共享数据</a>
+  </body>
+  ~~~
+
+- 在success.html中获取request域的值
+
+  ~~~html
+  <body>
+      success<br>
+      <p th:text="${testRequestScope]}"></p>
+  </body>
+  ~~~
+
+- 在HelloController.java类放入request域值
+
+  ~~~java
+  //使用servLetAPI向request域对象共享数据
+  @RequestMapping("/testRequestByServletAPI")
+  public string testRequestByServletAPI(HttpServletRequest request){
+      request. setAttribute("testRequestScope","hello, servletAPI");
+      return "success";
+  }
+  ~~~
+
+  运行结果：
+
+  [request域取值结果：](https://s1.ax1x.com/2022/07/13/jRTTKg.png)
+                                      [<img src="https://s1.ax1x.com/2022/07/13/jRTTKg.png" alt="jRTTKg.png" style="zoom:50%;" />](https://imgtu.com/i/jRTTKg)
+
+### 1.2 使用ModelAndView向request域对象共享数据(官方推荐)
+
+> 1. 方法返回值必须是ModelAndView对象。
+> 2. 向request域共享数据的四种方法本质上都是ModelAndView模型
+> 3. Model主要用于向请求域共享数据，View主要用于设置视图，实现页面跳转
+
+- 在index.html中创建超链接
+
+  ~~~html
+  <a th:href="@{/testModelAndView}">通过ModelAndView向request域对象共享数据</a><br>
+  ~~~
+
+- 编写HelloController.java类获取request对象数据
+
+  ~~~java
+  @RequestMapping("/testModelAndView")
+  public ModelAndView testModelAndView(){
+      /**
+       * ModelAndView有Model和View的功能
+       * Model主要用于向请求域共享数据
+       * View主要用于设置视图，实现页面跳转
+       */
+      ModelAndView mav = new ModelAndView();
+      //向请求域共享数据
+      mav.addObject("testScope","hello,ModelAndView");
+      //设置视图，实现页面跳转
+      mav.setViewName("success");
+      return mav;
+  }
+  ~~~
+
+  > 第10行代码是Model层，使用`addObject`方法向request域中添加一对数据
+  >
+  > 第12行代码是View层，主要用于跳转到success页面。相当于之前的`return "success"`
+
+  运行结果：
+
+  [mav获取request域对象值：](https://s1.ax1x.com/2022/07/13/jR7bQO.png)
+
+  ​                                            [<img src="https://s1.ax1x.com/2022/07/13/jR7bQO.png" alt="jR7bQO.png" style="zoom:50%;" />](https://imgtu.com/i/jR7bQO)
+
+### 1.3 使用Model向request域对象共享数据
+
+- 在index.html中添加链接
+
+  ~~~html
+  <a th:href="@{/testModel}">通过Model向request域对象共享数据</a><br>
+  ~~~
+
+- 编写HelloController.java类获取request对象数据
+
+  ~~~java
+  @RequestMapping("/testModel")
+  public String testModel(Model model){
+      model.addAttribute("testScope", "hello,Model");
+      return "success";
+  }
+  ~~~
+
+  运行结果：
+
+  [Model运行结果：](https://s1.ax1x.com/2022/07/14/jfi1Ld.png)
+
+  ​                                                 [<img src="https://s1.ax1x.com/2022/07/14/jfi1Ld.png" alt="jfi1Ld.png" style="zoom:50%;" />](https://imgtu.com/i/jfi1Ld)
+
+### 1.4 使用map向request域对象共享数据
+
+- index.html
+
+  ~~~html
+  <a th:href="@{/testMap}" >通过map向request域对象共享数据</a><br>
+  ~~~
+
+- 编写HelloController.java类获取request对象数据
+
+  ~~~java
+  @RequestMapping("/testMap")
+  public String testMap(Map<String, Object> map){
+      map.put("testScope", "hello,Map");
+      return "success";
+  }
+  ~~~
+
+  运行结果：
+  [map获取数据：](https://s1.ax1x.com/2022/07/14/jfiyoq.png)
+
+  ​                                                                 [<img src="https://s1.ax1x.com/2022/07/14/jfiyoq.png" alt="jfiyoq.png" style="zoom:50%;" />](https://imgtu.com/i/jfiyoq)
+
+### 1.5 使用ModelMap向request域对象共享数据
+
+- index.html
+
+  ~~~html
+  <a th:href="@{/testModelMap}" >通过ModelMap向request域对象共享数据</a><br>
+  ~~~
+
+- 编写HelloController.java类获取request对象数据
+
+  ~~~java
+  @RequestMapping("/testModelMap")
+  public String testModelMap(ModelMap modelMap){
+      modelMap.addAttribute("testScope", "hello,ModelMap");
+      return "success";
+  }
+  ~~~
+
+  运行结果：
+  [ModelMap获取数据：](https://s1.ax1x.com/2022/07/14/jfiIm9.png)
+                                                         [<img src="https://s1.ax1x.com/2022/07/14/jfiIm9.png" alt="jfiIm9.png" style="zoom:50%;" />](https://imgtu.com/i/jfiIm9)
+
+### 1.6 Model、ModelMap、Map的关系
+
+> Model、ModelMap、Map类型的参数其实本质上都是 BindingAwareModelMap 类型的
+
+~~~java
+public interface Model{}            									//是一个接口
+public class ModelMap extends LinkedhashMap<String,Object>{}            //继承了LinkedHashMap
+public class ExtendedModelMap extends MOdelMap implements Model{}       //继承了ModelMap又实现了Model接口
+public class BindingAwareModelMap{}  				//这个类对应的子类，就可以去实例化ModelMap也可以实例化Model
+//因为ModelMap继承了LinkedHashMap所以说，BindingAwareModelMap也可以实例化Map集合
+~~~
+
+> 总结：
+> 无论哪一种获取共享数据的方法都是ModelAndView模型。其返回结果是model：网页名称(success)和view：网页内容。
+
+[ModelAndView模型：](https://s1.ax1x.com/2022/07/14/jfkKDH.png)
+
+​								[<img src="https://s1.ax1x.com/2022/07/14/jfkKDH.png" alt="jfkKDH.png" style="zoom: 67%;" />](https://imgtu.com/i/jfkKDH)
+
+## 2. 向session域共享数据
+
+> 虽然SpringMVC提供了session共享数据的方法，但比较麻烦。所以这里建议使用原生SevletAPI
+
+- index.html中添加链接
+
+  ~~~html
+  <a th: href="@{/testSession}">通过servletAPI向session域对象共享数据</a><br>
+  ~~~
+
+- 在success.html中呈现session中存放的数据
+
+  ~~~html
+  <body>
+      success<br>
+      <p th:text="${session.testSessionScope)}"></p>
+  </body>
+  </html>
+  ~~~
+
+  > 注意在thy中获取session域值要使用`session.数据名`的方式。
+
+- 编写HelloController.java类获取request对象数据
+
+  ~~~java
+  @RequestMapping( "/testSession")
+  public String testSession(HttpSession session){
+      session.setAttribute("testSessionScope","hello, session");
+      return "success";
+  }
+  ~~~
+
+  [获取session域数据：](https://s1.ax1x.com/2022/07/14/jfAcFI.png)
+                                                   [<img src="https://s1.ax1x.com/2022/07/14/jfAcFI.png" alt="jfAcFI.png" style="zoom:50%;" />](https://imgtu.com/i/jfAcFI)
+
+## 3. 向application域(ServletContext)共享数据
+
+- index.html
+
+  ~~~html
+  <a th:href="@{/testApplication}">通过servletAPI向application域对象共享数据</a><br>
+  ~~~
+
+- 编写HelloController.java类获取request对象数据
+
+  ~~~java
+  @RequestMapping("/testApplication")
+  public String testApplication(HttpSession session){
+  	ServletContext application = session.getServletContext();
+      application.setAttribute("testApplicationScope", "hello,application");
+      return "success";
+  }
+  ~~~
+
+  运行结果：
+  [ServletContext域获取对象：](https://s1.ax1x.com/2022/07/14/jfEkp6.png) 
+
+  ​                                               [<img src="https://s1.ax1x.com/2022/07/14/jfEkp6.png" alt="jfEkp6.png" style="zoom:50%;" />](https://imgtu.com/i/jfEkp6)
+
+# 五. SpringMVC的视图
+
+> SpringMVC中的视图是View接口，视图的作用渲染数据，将模型Model中的数据展示给用户。
+>
+> SpringMVC视图的种类很多，默认有转发视图和重定向视图，但当工程引入jstl的依赖，转发视图会自动转换为JstlView。
+>
+> 若使用的视图技术为Thymeleaf，在SpringMVC的配置文件中配置了Thymeleaf的视图解析器，由此视图解析器解析之后所得到的是ThymeleafView
+
+## 1. ThymeleafView
+
+> 当控制器方法中所设置的视图名称==没有任何前缀时==，此时的视图名称会被SpringMVC配置文件中所配置的视图解析器解析，视图名称拼接视图前缀和视图后缀所得到的最终路径，会通过转发的方式实现跳转
+
+- 在index.html中创建链接
+
+  ~~~html
+  <a th:href="@{/testThymeleafView}">测试ThymeleafView</a><br>
+  ~~~
+
+- 编写HelloController.java类创建ThymeleafView视图
+
+  ~~~java
+  @RequestMapping("/testHello")
+  public String testHello(){
+      return "hello";
+  }
+  ~~~
+
+  > 上面的return直接返回hello没有前缀，所以使用的是ThymeleafView视图
+
+## 2. 转发视图
+
+> SpringMVC中默认的转发视图是InternalResourceView
+>
+> 当控制器方法中所设置的视图名称==以"forward:"为前缀时==，创建InternalResourceView视图，此时的视图名称不会被SpringMVC配置文件中所配置的视图解析器解析，而是会将前缀"forward:"去掉，剩余部分作为最终路径通过转发的方式实现跳转
+>
+> 如：例如"forward:/"，“forward:/employee”
+
+- index.html
+
+  ~~~html
+  <a th:href="@{/testForward}">测试InternalResourceView</a><br>
+  ~~~
+
+- 编写HelloController.java类创建测试InternalResourceView视图
+
+  ~~~java
+  @RequestMapping("/testHello")
+  public String testHello(){
+      return "hello";
+  }
+  
+  @RequestMapping("/testForward")
+  public String testForward(){
+      return "forward:/testHello";
+  }
+  ~~~
+
+  > 当我们进行testForward请求时，会通过testForward()方法转发testHello请求。
+  >
+  > 所以此时启动服务器访问testForward会发现地址是testForward但内容是testHello页面的。
+
+## 3. 重定向视图
+
+> SpringMVC中默认的重定向视图是RedirectView。
+>
+> 当控制器方法中所设置的视图名称以"redirect:"为前缀时，创建RedirectView视图，此时的视图名称不会被SpringMVC配置文件中所配置的视图解析器解析，而是会将前缀"redirect:"去掉，剩余部分作为最终路径通过重定向的方式实现跳转。
+>
+> 例如："redirect:/"，“redirect:/employee”
+
+- index.html
+
+  ~~~html
+  <a th:href="@{/testRedirect}" >测试RedirectView</a><br>
+  ~~~
+
+- 编写HelloController.java类创建测试测试RedirectView视图
+
+  ~~~java
+  @RequestMapping("/testHello")
+  public String testHello(){
+      return "hello";
+  }
+  
+  @RequestMapping("/testRedirect")
+  public String testRedirect(){
+      return "redirect:/testHello";
+  }
+  ~~~
+
+  > 此时访问testRedirect请求会将页面请求转发为testHello请求。此时地址也会改变。
+  >
+  > 注：重定向视图在解析时，会先将redirect:前缀去掉，然后会判断剩余部分是否以/开头，若是则会自动拼接上下文路径
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
