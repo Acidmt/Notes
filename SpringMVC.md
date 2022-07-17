@@ -336,7 +336,7 @@ SpringMVC
          xmlns:context="http://www.springframework.org/schema/context"
          xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                              http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
-  
+  	<!--控制器在哪个包下开启注解扫描-->
       <context:component-scan base-package="com.atguigu.mvc.controller"></context:component-scan>
       
       <!-- 配置Thymeleaf视图解析器 -->
@@ -1493,11 +1493,1142 @@ public class BindingAwareModelMap{}  				//这个类对应的子类，就可以�
   >
   > 注：重定向视图在解析时，会先将redirect:前缀去掉，然后会判断剩余部分是否以/开头，若是则会自动拼接上下文路径
 
+
+## 4. 视图控制器view-controller
+
+> 当控制器方法中，仅仅用来实现页面跳转，即只需要设置视图名称时，没有其他的处理方法时可以将处理器方法使用view-controller标签进行表示
+
+以下可以用`view-controller`替代
+
+~~~java
+@RequestMapping("/")
+public String testHello(){
+    return "index";
+}
+~~~
+
+替换配置要在SpringMVC.xml文件中配置
+
+~~~xml
+<beans>
+    <mvc:view-controller path="/" view-name="index"></mvc:view-controller>
+</beans>
+~~~
+
+> path：设置处理的请求地址
+>
+> view-name：设置请求地址所对应的视图名称
+>
+> 当SpringMVC中设置任何一个view-controller时，其他控制器中的请求映射将全部失效，此时需要在SpringMVC的核心配置文件中设置开启mvc注解驱动的标签：`<mvc:annotation-driven />`来开启MVC的注解驱动。
+
+~~~xml
+<beans>
+    <mvc:view-controller path="/" view-name="index"></mvc:view-controller>
+    <!--开启MVC的注解驱动-->
+    <mvc:annotation-driven />
+</beans>
+~~~
+
+## 5. 视图解析器：InternalResourceViewResolver
+
+> SpringMVC解析JSP视图需要在SpringMVC.xml文件中配置InternalResourceViewResolver解析器
+
+- SpringMVC.xml
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <beans xmlns="http://www.springframework.org/schema/beans"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:context="http://www.springframework.org/schema/context"
+         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+      <!--控制器在哪个包下生效-->
+      <context:component-scan base-package="com.atguigu.mvc.controller"></context:component-scan>
+  
+      <!--配置JSP视图解析器-->
+      <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+          <property name="prefix" value="/WEB-INF/templates/*"></property>
+          <property name="suffix" value=".jsp"></property>
+      </bean>
+  
+  </beans>
+  ~~~
+
+- 编写index.jsp
+
+  ~~~jsp
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <html>
+      <head>
+          <title>Title</title>
+      </head>
+      <body>
+          <h1>首页</h1>
+          <a href= "${pageContext.request.contextPathi}/success">success.jsp</a>
+      </body>
+  </html>
+  ~~~
+
+  > 第8行使用EL表达式发送请求。
+
+- 编写JspController.java类，处理访问success.jsp请求页面
+
+  ~~~java
+  @Controller
+  public class JspController {
+      @RequestMapping("/success")
+      public string success(){
+          return "success"
+      }
+  }
+  ~~~
+
+- 编写success.jsp页面
+
+  ~~~jsp
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <html>
+      <head>
+          <title>Title</title>
+      </head>
+      <body>
+          成功
+      </body>
+  </html>
+  ~~~
+
+  运行结果：
+
+  [JSP视图运行结果：](https://s1.ax1x.com/2022/07/15/jhZ4r8.png)
+
+  ​                                                     [<img src="https://s1.ax1x.com/2022/07/15/jhZ4r8.png" alt="jhZ4r8.png" style="zoom:50%;" />](https://imgtu.com/i/jhZ4r8)
+
+# 六. RESTful
+
+> 简介：REST：Representational State Transfer，表现层资源状态转移。是一种项目工程风格。
+>
+> 其有三类：
+>
+> 1. 资源：资源是一种看待服务器的方式，即，将服务器看作是由很多离散的资源组成。每个资源是服务器上一个可命名的抽象概念。因为资源是一个抽象的概念，所以它不仅仅能代表服务器文件系统中的一个文件、数据库中的一张表等等具体的东西，可以将资源设计的要多抽象有多抽象，只要想象力允许而且客户端应用开发者能够理解。与面向对象设计类似，资源是以名词为核心来组织的，首先关注的是名词。一个资源可以由一个或多个URI来标识。URI既是资源的名称，也是资源在Web上的地址。对某个资源感兴趣的客户端应用，可以通过资源的URI与其进行交互。
+> 2. 资源的表述：资源的表述是一段对于资源在某个特定时刻的状态的描述。可以在客户端-服务器端之间转移（交换）。资源的表述可以有多种格式，例如HTML/XML/JSON/纯文本/图片/视频/音频等等。资源的表述格式可以通过协商机制来确定。请求-响应方向的表述通常使用不同的格式。
+> 3. 状态转移：状态转移说的是：在客户端和服务器端之间转移（transfer）代表资源状态的表述。通过转移和操作资源的表述，来间接实现操作资源的目的。
+
+## 1. RESTful的实现
+
+> 具体说，就是 HTTP 协议里面，四个表示操作方式的动词：GET、POST、PUT、DELETE。
+>
+> 它们分别对应四种基本操作：GET 用来获取资源，POST 用来新建资源，PUT 用来更新资源，DELETE 用来删除资源。
+>
+> REST 风格提倡 URL 地址使用统一的风格设计，从前到后各个单词使用斜杠分开，不使用问号键值对方式携带请求参数，而是将要发送给服务器的数据作为 URL 地址的一部分，以保证整体风格的一致性。
+
+RESTful风格：
+
+|   操作   |     传统方式     |        REST风格        |
+| :------: | :--------------: | :--------------------: |
+| 查询操作 | getUserById?id=1 |  user/1–>get请求方式   |
+| 保存操作 |     saveUser     |   user–>post请求方式   |
+| 删除操作 | deleteUser?id=1  | user/1–>delete请求方式 |
+| 更新操作 |    updateUser    |   user–>put请求方式    |
+
+## 2. HiddenHttpMethodFilter发送put和delete请求
+
+> 由于浏览器只支持发送get和post方式的请求，我们需要用HiddenHttpMethodFilter来发送put和delete请求。
+>
+> 处理put和delete请求的条件：
+>
+> 1. 当前请求的请求方式必须为post
+> 2. 当前请求必须传输请求参数_method
+>
+> 满足以上条件，HiddenHttpMethodFilter 过滤器就会将当前请求的请求方式转换为请求参数`_method`的值，因此请求参数`_method`的值才是最终的请求方式
+
+在web.xml中注册HiddenHttpMethodFilter：
+
+~~~xml
+<filter>
+    <filter-name>HiddenHttpMethodFilter</filter-name>
+    <filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+</filter>
+<filter-mapping>
+    <filter-name>HiddenHttpMethodFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
+~~~
+
+> ==小技巧：可以编写一个filter的实现类，然后通过控制器继承实现类，然后调用实现类中的dofilter方法，实现偷梁换柱。==
+
+- 编写index.html
+
+  ~~~html
+  <body>
+      <form th: action="@{/user}" method="post">
+          < input type="hidden" name=" method" value="PUT" >
+          用户名: <input type= "text" name= "username"><br>
+          密码: <input type="password" name= "password"><br>
+          <input type="submit" value="修改"><br>
+      </form>
+  </body>
+  ~~~
+
+- 编写HelloController.java类获取PUT请求
+
+  ~~~java
+  @RequestMapping(value ="/user",method = RequestMethod.PUT)
+  public string updateuser(String username, String password){
+      System.out.println("修改用户信息："+username+","+password);
+      return" success" ;
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  修改用户信息：admin,123
+  ~~~
+
+  > 注意：目前为止，SpringMVC中提供了两个过滤器：CharacterEncodingFilter和HiddenHttpMethodFilter。在web.xml中注册时，必须先注册CharacterEncodingFilter，再注册HiddenHttpMethodFilter
+
+# ==七. RESTful案例==
+
+> 我们用RESTful实现增删改查
+
+## 1. 准备工作
+
+功能清单
+
+| 功能                | URL 地址    | 请求方式 |
+| ------------------- | ----------- | -------- |
+| 访问首页√           | /           | GET      |
+| 查询全部数据√       | /employee   | GET      |
+| 删除√               | /employee/2 | DELETE   |
+| 跳转到添加数据页面√ | /toAdd      | GET      |
+| 执行保存√           | /employee   | POST     |
+| 跳转到更新数据页面√ | /employee/2 | GET      |
+| 执行更新√           | /employee   | PUT      |
+
+### 1.1 配置项目文件
+
+- 配置web.xml文件
+
+  ~~~xml
+  <web-app>
+      <!--配置编码过滤器-->
+      <filter>
+          <filter-name>CharacterEncodingFilter</ filter-name>
+          <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+          <init- param>
+              <param- name>encoding</ param-name>
+              <param-va1ue>UTF-8</ param-value>
+              </init-param>
+          <init-param>
+              <param- name>forceResponseEncoding</ param-name>
+              <param-value>true</ param-value>
+          </init-param>
+      </filter>
+      <filter-mapping>
+          <filter-name>CharacterEncodingFilter</filter-name>
+          <url-pattern>/*</url-pattern>
+      </filter-mapping>
+  
+      <!--配置处理请求方式put和delete的Hi ddenHt tpMethodFilter-->
+      <filter>
+          <filter-name>HiddenHttpMethodFilter</ filter-name>
+          <filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+      </filter>
+      <filter-mapping>
+          <filter-name>HiddenHttpMethodFilter</ filter-name>
+          <url-pattern>/*</url-pattern>
+      </filter-mapping>
+  
+      <!--配置SpringMVC的前端控制器，对浏览器发送的请求统一进行处理-->
+      <servlet>
+          <servlet-name>springMVC </servlet-name>
+          <servlet-class>org.springframework.web.serv1et.DispatcherServ1et</servlet-class>
+          <!--配置SpringMVC配置文件的位置和名称-->
+          <init-param>
+              <param-name>contextConfigLocation</ param-name>
+              <param-value>classpath:springMVC.xml</param-value>
+          </init-param>
+          <!--将前端控制器DispatcherServlet的初始化时间提前到服务器启动时-->
+          <load-on-startup>1</load-on-startup>
+          </serv1et>
+      <servlet-mapping>
+          <servlet-name>springMVC </servlet-name>
+          <ur1-pattern>/</ur1-pattern>
+      </servlet-mapping>
+  </web-app>
+  ~~~
+
+- 配置SpringMVC.xml文件
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <beans xmlns="http://www.springframework.org/schema/beans"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:context="http://www.springframework.org/schema/context"
+         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+      <!--控制器在哪个包下开启注解扫描-->
+      <context:component-scan base-package="com.atguigu.mvc.controller,com.atguigu.mvc.dao">
+      </context:component-scan>
+  
+      <!-- 配置Thymeleaf视图解析器 -->
+      <bean id="viewResolver" class="org.thymeleaf.spring5.view.ThymeleafViewResolver">
+          <property name="order" value="1"/>
+          <property name="characterEncoding" value="UTF-8"/>
+          <property name="templateEngine">
+              <bean class="org.thymeleaf.spring5.SpringTemplateEngine">
+                  <property name="templateResolver">
+                      <bean class="org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver">
+  
+                          <!-- 视图前缀 -->
+                          <property name="prefix" value="/WEB-INF/templates/"/>
+  
+                          <!-- 视图后缀 -->
+                          <property name="suffix" value=".html"/>
+                          <property name="templateMode" value="HTML5"/>
+                          <property name="characterEncoding" value="UTF-8" />
+                      </bean>
+                  </property>
+              </bean>
+          </property>
+      </bean>
+  
+      <!--配置视图控制器-->
+      <mvc:view-controller path= "/" view-name="index"></mvc:view-controller>
+      <!--开启mvc注解驱动-->
+      <mvc:annotation-driven/>
+  
+      <!-- 
+     处理静态资源，例如html、js、css、jpg
+    若只设置该标签，则只能访问静态资源，其他请求则无法访问
+    此时必须设置<mvc:annotation-driven/>解决问题
+   -->
+      <mvc:default-servlet-handler/>
+  
+      <!-- 开启mvc注解驱动 -->
+      <mvc:annotation-driven>
+          <mvc:message-converters>
+              <!-- 处理响应中文内容乱码 -->
+              <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                  <property name="defaultCharset" value="UTF-8" />
+                  <property name="supportedMediaTypes">
+                      <list>
+                          <value>text/html</value>
+                          <value>application/json</value>
+                      </list>
+                  </property>
+              </bean>
+          </mvc:message-converters>
+      </mvc:annotation-driven>
+  </beans>
+  ~~~
+
+### 1.2 创建bean层
+
+- 编写实体类Employee.java
+
+  ~~~java
+  package com.atguigu.mvc.bean;
+  
+  public class Employee {
+  
+     private Integer id;
+     private String lastName;
+  
+     private String email;
+     //1 male, 0 female
+     private Integer gender;
+     
+     public Integer getId() {
+        return id;
+     }
+  
+     public void setId(Integer id) {
+        this.id = id;
+     }
+  
+     public String getLastName() {
+        return lastName;
+     }
+  
+     public void setLastName(String lastName) {
+        this.lastName = lastName;
+     }
+  
+     public String getEmail() {
+        return email;
+     }
+  
+     public void setEmail(String email) {
+        this.email = email;
+     }
+  
+     public Integer getGender() {
+        return gender;
+     }
+  
+     public void setGender(Integer gender) {
+        this.gender = gender;
+     }
+  
+     public Employee(Integer id, String lastName, String email, Integer gender) {
+        super();
+        this.id = id;
+        this.lastName = lastName;
+        this.email = email;
+        this.gender = gender;
+     }
+  
+     public Employee() {
+     }
+  }
+  ~~~
+
+### 1.3 创建Dao层
+
+- 编写工具类EmployeeDao.java
+
+  ~~~java
+  package com.atguigu.mvc.dao;
+  
+  import java.util.Collection;
+  import java.util.HashMap;
+  import java.util.Map;
+  
+  import com.atguigu.mvc.bean.Employee;
+  import org.springframework.stereotype.Repository;
+  
+  
+  @Repository
+  public class EmployeeDao {
+  
+     private static Map<Integer, Employee> employees = null;
+     
+     static{
+        employees = new HashMap<Integer, Employee>();
+  
+        employees.put(1001, new Employee(1001, "E-AA", "aa@163.com", 1));
+        employees.put(1002, new Employee(1002, "E-BB", "bb@163.com", 1));
+        employees.put(1003, new Employee(1003, "E-CC", "cc@163.com", 0));
+        employees.put(1004, new Employee(1004, "E-DD", "dd@163.com", 0));
+        employees.put(1005, new Employee(1005, "E-EE", "ee@163.com", 1));
+     }
+     
+     private static Integer initId = 1006;
+     //添加用户信息
+     public void save(Employee employee){
+        if(employee.getId() == null){
+           employee.setId(initId++);
+        }
+        employees.put(employee.getId(), employee);
+     }
+     //获取所有员工信息
+     public Collection<Employee> getAll(){
+        return employees.values();
+     }
+     //获取某个员工信息
+     public Employee get(Integer id){
+        return employees.get(id);
+     }
+     //删除某个员工信息
+     public void delete(Integer id){
+        employees.remove(id);
+     }
+  }
+  ~~~
+
+### 1.4 创建controller
+
+- 编写EmployeeController.java
+
+  ~~~java
+  @Controller
+  public class EmployeeController {
+      @Autowired
+      private EmployeeDao employeeDao ;
+  }
+  ~~~
+  
+  > @Controller：告知Spring这是一个控制器
+  >
+  > @Autowired：自动装配
+
+## 2. 具体功能
+
+- 在templates目录下创建index.html页面作为主页
+
+  ~~~html
+  <!DOCTYPE html>
+  <html lang="en" xmlns:th="http://www.thymeleaf.org">
+      <head>
+          <meta charset="UTF-8">
+          <title>首页</title>
+      </head>
+      <body>
+          <h1>首页</h1>
+          <a th:href="@{/employee}">查看员工信息</a>
+      </body>
+  </html>
+  ~~~
+
+- 在SpringMVC.xml中配置视图控制器，开启MVC注解驱动。(可以直接访问首页，不用写控制器)
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <beans xmlns="http://www.springframework.org/schema/beans"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:context="http://www.springframework.org/schema/context"
+         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+      <!--控制器在哪个包下开启注解扫描-->
+      <context:component-scan base-package="com.atguigu.mvc.controller,com.atguigu.mvc.dao">
+      </context:component-scan>
+  
+      <!-- 配置Thymeleaf视图解析器 -->
+      <bean id="viewResolver" class="org.thymeleaf.spring5.view.ThymeleafViewResolver">
+          <property name="order" value="1"/>
+          <property name="characterEncoding" value="UTF-8"/>
+          <property name="templateEngine">
+              <bean class="org.thymeleaf.spring5.SpringTemplateEngine">
+                  <property name="templateResolver">
+                      <bean class="org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver">
+  
+                          <!-- 视图前缀 -->
+                          <property name="prefix" value="/WEB-INF/templates/"/>
+  
+                          <!-- 视图后缀 -->
+                          <property name="suffix" value=".html"/>
+                          <property name="templateMode" value="HTML5"/>
+                          <property name="characterEncoding" value="UTF-8" />
+                      </bean>
+                  </property>
+              </bean>
+          </property>
+      </bean>
+  
+      <!--配置视图控制器-->
+      <mvc:view-controller path= "/" view-name="index"></mvc:view-controller>
+  
+      <!--开放对静态资源的访问-->
+      <mvc:default-servlet-handler/>
+      
+      <!--开启mvc注解驱动-->
+      <mvc:annotation-driven/>
+  
+      <!-- 
+     处理静态资源，例如html、js、css、jpg
+    若只设置该标签，则只能访问静态资源，其他请求则无法访问
+    此时必须设置<mvc:annotation-driven/>解决问题
+   -->
+      <mvc:default-servlet-handler/>
+  
+      <!-- 开启mvc注解驱动 -->
+      <mvc:annotation-driven>
+          <mvc:message-converters>
+              <!-- 处理响应中文内容乱码 -->
+              <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                  <property name="defaultCharset" value="UTF-8" />
+                  <property name="supportedMediaTypes">
+                      <list>
+                          <value>text/html</value>
+                          <value>application/json</value>
+                      </list>
+                  </property>
+              </bean>
+          </mvc:message-converters>
+      </mvc:annotation-driven>
+  </beans>
+  ~~~
+
+### 2.1 查询所有员工数据
+
+- 在EmployeeController.java中编写控制器方法
+
+  ~~~java
+  @Controller
+  public class EmployeeController {
+      @Autowired
+      private EmployeeDao employeeDao;
+      @RequestMapping(value = "/employee", method =RequestMethod.GET)
+      public String getAllEmployee(){
+          collection<Employee> employeelist = employeeDao.getAll();
+          model.addAttribute("employeeList",employeelist);
+          return "emp1oyee_list";
+      }
+  }
+  ~~~
+  
+- 创建emp1oyee_list.html页面展示员工信息查询结果
+
+  ~~~html
+  <!DOCTYPE html>
+  <html lang="en" xmlns:th="http://www.thymeleaf.org">
+      <head>
+          <meta charset="UTF-8">
+          <title>Employee Info</title>
+      </head>
+      <body>
+          <table border= "1" cellspacing="0" cel1padding="0" style="text-align:center;" id="dataTable">
+              <tr>
+                  <th colspan="5">Employee Info</th>
+              </tr>
+              <tr>
+                  <th>id</th>
+                  <th> lastName</th>
+                  <th>email</th>
+                  <th>gender</th>
+                  <th>options</th>
+              </tr>
+              <tr th:each="employee:${employeelist}">
+                  <td th:text="${employee.id}"></td>
+                  <td th:text="${employee.lastName}"></td>
+                  <td th:text="${employee.email}"></td>
+                  <td th:text="${employee.gender}"></td>
+                  <td>
+                      <a href="">delete</a>
+                      <a href="">update</a>
+                  </td>
+              </tr>
+          </table>
+          
+      </body>
+  </html>
+  ~~~
+
+  点击`查看员工信息`链接显示结果
+
+  [案例查询员工结果：](https://s1.ax1x.com/2022/07/16/j5BPfJ.png)
+
+  ​                                                    [<img src="https://s1.ax1x.com/2022/07/16/j5BPfJ.png" alt="j5BPfJ.png" style="zoom: 67%;" />](https://imgtu.com/i/j5BPfJ)
+
+### 2.2 删除指定员工信息
+
+- 在emp1oyee_list.html页面25行添加代码完善删除请求功能
+
+  ~~~html
+  <a th:href="@{'employee/'+${employee.id}}">delete</a>
+  <!--或者写为以下形式：-->
+  <a th:href="@{'/employee/'+${employee.id}}">delete</a>
+  ~~~
+
+  接着在第30行编写form表单，因为`DELETE`请求必须传递参数，所以这里使用隐藏表单在点击超链接的同时提交表单。
+
+  ~~~html
+  <!-- 作用：通过超链接控制表单的提交，将post请求转换为delete请求 -->
+  <form id="delete_form" method="post">
+      <!-- HiddenHttpMethodFilter要求：必须传输_method请求参数，并且值为最终的请求方式 -->
+      <input type="hidden" name="_method" value="delete"/>
+  </form>
+  ~~~
+
+- 超链接绑定点击事件，这里用vue
+
+  在编写的表单后面引入vue.js
+
+  ~~~html
+  <script type="text/javascript" th:src="@{/static/js/vue.js}"></script>
+  ~~~
+
+  接着在后面编写vue处理点击提交事件
+
+  ~~~html
+  <script type="text/javascript">
+      var vue = new Vue({
+          el:"#dataTable",
+          methods:{
+              //event表示当前事件
+              deleteEmployee:function (event) {
+                  //通过id获取表单标签
+                  var delete_form = document.getElementById("delete_form");
+                  //将触发事件的超链接的href属性为表单的action属性赋值
+                  delete_form.action = event.target.href;
+                  //提交表单
+                  delete_form.submit();
+                  //阻止超链接的默认跳转行为
+                  event.preventDefault();
+              }
+          }
+      });
+  </script>
+  ~~~
+
+- EmployeeController.java中编写控制器
+
+  ~~~java
+  @RequestMapping(value = "/employee/{id}", method = RequestMethod.DELETE)
+  public String deleteEmployee(@PathVariable("id") Integer id){
+      employeeDao.delete(id);
+      return "redirect:/employee";
+  }
+  ~~~
+
+- 因为导入了新的静态资源，所以项目重新打包
+  [项目重新打包：](https://s1.ax1x.com/2022/07/16/j5sqEV.png)                           [<img src="https://s1.ax1x.com/2022/07/16/j5sqEV.png" alt="j5sqEV.png" style="zoom: 50%;" />](https://imgtu.com/i/j5sqEV)
+
+  同时在SpringMVC.xml中开放对静态资源的访问
+
+  ~~~xml
+  <!--开放对静态资源的访问-->
+  <mvc: default-servlet-handler/>
+  ~~~
+
+  运行结果：
+
+  [删除id为1001后表格：](https://s1.ax1x.com/2022/07/16/j5sjCF.png)
+                                                             [<img src="https://s1.ax1x.com/2022/07/16/j5sjCF.png" alt="j5sjCF.png" style="zoom:50%;" />](https://imgtu.com/i/j5sjCF)
+
+### 2.3 跳转到添加数据页面
+
+- 在SpringMVC.xml的第35行添加页面请求控制器
+
+  ~~~xml
+  <mvc:view-controller path="/toAdd" view-name="employee_add"></mvc:view-controller>
+  ~~~
+
+- 创建employee_add.html
+
+  ~~~html
+  <!DOCTYPE html>
+  <html lang="en" xmlns:th="http://www.thymeleaf.org">
+      <head>
+          <meta charset="UTF-8">
+          <title>Add Employee</title>
+      </head>
+      <body>
+  
+          <form th:action="@{/employee}" method="post">
+              lastName:<input type="text" name="lastName"><br>
+              email:<input type="text" name="email"><br>
+              gender:<input type="radio" name="gender" value="1">male
+              <input type="radio" name="gender" value="0">female<br>
+              <input type="submit" value="add"><br>
+          </form>
+  
+      </body>
+  </html>
+  ~~~
+
+- 控制器方法
+
+  ~~~java
+  @RequestMapping(value = "/employee", method = RequestMethod.POST)
+  public String addEmployee(Employee employee){
+      employeeDao.save(employee);
+      return "redirect:/employee";
+  }
+  ~~~
+
+  运行结果：
+  [添加用户信息：](https://s1.ax1x.com/2022/07/16/j5yG8g.png)
+                                                                      [<img src="https://s1.ax1x.com/2022/07/16/j5yG8g.png" alt="j5yG8g.png" style="zoom:50%;" />](https://imgtu.com/i/j5yG8g)
+
+  [完成添加后的表格：](https://s1.ax1x.com/2022/07/16/j5yJ2Q.png)
+
+​                                                                      [<img src="https://s1.ax1x.com/2022/07/16/j5yJ2Q.png" alt="j5yJ2Q.png" style="zoom:50%;" />](https://imgtu.com/i/j5yJ2Q)
+
+### 2.4 跳转到更新数据页面
+
+- 在emp1oyee_list.html的第26行添加修改信息请求
+
+  ~~~html
+  <a th:href="@{'/employee/'+${employee.id}}">update</a>
+  ~~~
+
+- 编写控制器方法
+
+  ~~~java
+  @RequestMapping(value = "/employee/{id}", method = RequestMethod.GET)
+  public String getEmployeeById(@PathVariable("id") Integer id, Model model){
+      Employee employee = employeeDao.get(id);
+      model.addAttribute("employee", employee);
+      return "employee_update";
+  }
+  ~~~
+
+- 跳转到employee_update.html页面
+
+  ~~~html
+  <!DOCTYPE html>
+  <html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head>
+      <meta charset="UTF-8">
+      <title>Update Employee</title>
+  </head>
+  <body>
+  
+  <form th:action="@{/employee}" method="post">
+      <input type="hidden" name="_method" value="put">
+      <input type="hidden" name="id" th:value="${employee.id}">
+      lastName:<input type="text" name="lastName" th:value="${employee.lastName}"><br>
+      email:<input type="text" name="email" th:value="${employee.email}"><br>
+      gender:<input type="radio" name="gender" value="1" th:field="${employee.gender}">male
+      <input type="radio" name="gender" value="0" th:field="${employee.gender}">female<br>
+      <input type="submit" value="update"><br>
+  </form>
+  
+  </body>
+  </html>
+  ~~~
+
+  > `th:field="${employee.gender}"`可用于单选框或复选框的回显。若单选框的value和employee.gender的值一致，则添加`checked="checked"`属性。其余的都是根据请求域回显设置默认值。
+
+- 编写控制器执行更新
+
+  ~~~java
+  @RequestMapping(value = "/employee", method = RequestMethod.PUT)
+  public String updateEmployee(Employee employee){
+      employeeDao.save(employee);
+      return "redirect:/employee";
+  }
+  ~~~
+
+  运行结果：
+  [修改id为1001信息前：](https://s1.ax1x.com/2022/07/16/j56Go6.png)
+
+  ​                                               [<img src="https://s1.ax1x.com/2022/07/16/j56Go6.png" alt="j56Go6.png" style="zoom:50%;" />](https://imgtu.com/i/j56Go6)
+
+  [修改信息：](https://s1.ax1x.com/2022/07/16/j56YFK.png)
+
+  ​                                               [<img src="https://s1.ax1x.com/2022/07/16/j56YFK.png" alt="j56YFK.png" style="zoom:50%;" />](https://imgtu.com/i/j56YFK)
+
+  [修改成功后表格：](https://s1.ax1x.com/2022/07/16/j56NWD.png)
+
+  ​                                               [<img src="https://s1.ax1x.com/2022/07/16/j56NWD.png" alt="j56NWD.png" style="zoom:50%;" />](https://imgtu.com/i/j56NWD)
+
+# 八. HttpMessageConverter
+
+> HttpMessageConverter，报文信息转换器，将请求报文转换为Java对象，或将Java对象转换为响应报文
+>
+> HttpMessageConverter提供了两个注解和两个类型：@RequestBody，@ResponseBody，RequestEntity，ResponseEntity
+>
+> 其中相应信息较为常用
+
+## 1. @RequestBody(获取请求体)
+
+> @RequestBody可以获取请求体，需要在控制器方法设置一个形参，使用@RequestBody进行标识，当前请求的请求体就会为当前注解所标识的形参赋值
+
+- 编写index.html
+
+  ~~~html
+  <form th:action="@{/testRequestBody}" method="post">
+      用户名：<input type="text" name="username"><br>
+      密码：<input type="password" name="password"><br>
+      <input type="submit">
+  </form>
+  ~~~
+
+- 编写HttpController.java控制器
+
+  ~~~java
+  @RequestMapping("/testRequestBody")
+  public String testRequestBody(@RequestBody String requestBody){
+      System.out.println("requestBody:"+requestBody);
+      return "success";
+  }
+  ~~~
+
+- 编写获取请求体成功后跳转界面success.html
+
+  ~~~html
+  <!DOCTYPE html>
+  <html>
+  	<head>
+  		<meta charset="utf-8">
+  		<title></title>
+  	</head>
+  	<body>
+  		success
+  	</body>
+  </html>
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  requestBody:username=admin&password=123456
+  ~~~
+
+
+## 2. RequestEntity(获取请求报文)
+
+> RequestEntity封装请求报文的一种类型，需要在控制器方法的形参中设置该类型的形参，当前请求的请求报文就会赋值给该形参，可以通过getHeaders()获取请求头信息，通过getBody()获取请求体信息
+
+- 在index.html中编写form表单
+
+  ~~~html
+  <form th:action="@{/testRequestEntity" method="post">
+      <input type= "text" name= "username">
+      <input type= "text" name= "password">
+      <input type= "submit" value="测试@testRequestEntity">
+  </form>
+  ~~~
+
+- 在HttpController.java控制器中编写请求方法
+
+  ~~~java
+  @RequestMapping("/testRequestEntity")
+  public String testRequestEntity(RequestEntity<String> requestEntity){
+      //当前requestEnity表示整个请求报文的信息
+      System.out.println("requestHeader:"+requestEntity.getHeaders());
+      System.out.println("requestBody:"+requestEntity.getBody());
+      return "success";
+  }
+  ~~~
+
+  输出结果：
+
+  ~~~shell
+  requestHeader:[host:“localhost:8080”, connection:“keep-alive”, content-length:“27”, cache-control:“max-age=0”, sec-ch-ua:"" Not A;Brand";v=“99”, “Chromium”;v=“90”, “Google Chrome”;v=“90"”, sec-ch-ua-mobile:"?0", upgrade-insecure-requests:“1”, origin:“http://localhost:8080”, user-agent:“Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36”]
+  requestBody:username=admin&password=123
+  ~~~
+
+## 3. 通过HttpServletResponse响应浏览器数据
+
+- 在HttpController.java控制器中编写响应方法
+
+  ~~~java
+  @RequestMapping("/testResponse")
+  public void testResponse(Ht tpServletResponse response ) throws IQException {
+      response. getWriter().print("hello,response");
+  }
+  ~~~
+
+- 在index.html中编写超链接
+
+  ~~~html
+  <a th:href="@{/testResponse}" >通过servletAPI的response对象响应浏览器数据</a>
+  ~~~
+
+  访问后结果：
+
+  ~~~shell
+  hello,response
+  ~~~
+
+## ==4. @ResponseBody(发送响应体)==
+
+> @ResponseBody用于标识一个控制器方法，可以将该方法的返回值直接作为响应报文的响应体响应用到浏览器
+
+- 在HttpController.java控制器中编写响应方法
+
+  ~~~java
+  @RequestMapping("/testResponseBody")
+  @ResponseBody
+  public String testResponseBody(){
+      return "success1";
+  }
+  ~~~
+
+- 在index.html中编写超链接
+
+  ~~~html
+  <a th:href="@{/testResponseBody}">通过@ResponseBody响应浏览器数据</a>
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  success1
+  ~~~
+
+## 5. @ResponseBody处理json数据
+
+> JSON：JavaScript中的一种数据交互格式
+
+- 在pom.xml中添加配置文件导入jar包
+
+  ~~~xml
+  <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.12.1</version>
+  </dependency>
+  ~~~
+
+  [导入jar包后：](https://s1.ax1x.com/2022/07/17/jIU3WR.png)
+  												[<img src="https://s1.ax1x.com/2022/07/17/jIU3WR.png" alt="jIU3WR.png" style="zoom:50%;" />](https://imgtu.com/i/jIU3WR)
+
+- 在SpringMVC.xml中开启mvc的注解驱动
+
+  > 此时在HandlerAdaptor中会自动装配一个消息转换器：MappingJackson2HttpMessageConverter，可以将响应到浏览器的Java对象转换为Json格式的字符串
+
+  ~~~xml
+  <mvc:annotation-driven/>
+  ~~~
+
+- 在HttpController.java控制器中进行标识
+
+  > 将Java对象直接作为控制器方法的返回值返回，就会自动转换为Json格式的字符串
+
+  ~~~java
+  @RequestMapping("/testResponseUser")
+  @ResponseBody
+  public User testResponseUser(){
+      return new User(1001,"admin","123456",23,"男");
+  }
+  ~~~
+
+- 在index.html中添加链接访问
+
+  ~~~html
+  <a th:href="@{/testResponseUser}">通过@ResponseBody响应浏览器User对象</a><br>
+  ~~~
+
+  运行结果：
+
+  ~~~json
+  {"id":1001,"username":"admin","password":"123456","age":23,"sex":"男"}
+  ~~~
+
+## 6. SpringMVC处理ajax
+
+- 在资源目录下导入axios.js和vue.js。之后重新打包。
+
+  [导入静态资源：](https://s1.ax1x.com/2022/07/17/jIaRjx.png)
+                                                               [<img src="https://s1.ax1x.com/2022/07/17/jIaRjx.png" alt="jIaRjx.png" style="zoom:50%;" />](https://imgtu.com/i/jIaRjx)
+
   
 
+- 在index.html中编写容器，并使用vue取消链接默认跳转
 
+  ~~~html
+  <div id="app">
+      <a th:href="@{/testAxios}">SpringMVC处理ajax</a>
+  </div>
+  <script type="text/javascript" th:src="@{/static/js/vue.js}"></script>
+  <script type="text/javascript" th:src="@{/static/js/axios.min.js}"></script>
+  <script type="text/javascript">
+      var vue = new Vue({
+          el:"#app",
+          methods:{
+              testAjax:function (event) {
+                  axios({
+                      method:"post",
+                      url:event.target.href,
+                      <!--往服务器传输的数据-->
+                      params:{
+                          username:"admin",
+                          password:"123456"
+                      }
+                  }).then(function (response) {		<!--执行成功后执行的函数-->
+                      alert(response.data);			<!--弹窗输出数据-->
+                  });
+                  event.preventDefault();
+              }
+          }
+      });
+  </script>
+  ~~~
 
+- 在HttpController.java中编写控制器
 
+  ~~~java
+  @RequestMapping("/testAjax")
+  @ResponseBody
+  public String testAjax(String username, String password){
+      System.out.println("username:"+username+",password:"+password);
+      return "hello,ajax";
+  }
+  ~~~
+
+  运行结果：
+  [SpringMVC处理ajax：](https://s1.ax1x.com/2022/07/17/jIdMG9.png)                                                [<img src="https://s1.ax1x.com/2022/07/17/jIdMG9.png" alt="jIdMG9.png" style="zoom: 50%;" />](https://imgtu.com/i/jIdMG9)
+
+## 7. @RestController注解
+
+> @RestController注解是springMVC提供的一个复合注解，标识在控制器的类上，就相当于为类添加了@Controller注解，并且为其中的每个方法添加了@ResponseBody注解
+
+## 8. ResponseEntity
+
+> ResponseEntity用于控制器方法的返回值类型，该控制器方法的返回值就是响应到浏览器的响应报文
+
+# 九. 使用ResponseEntity进行文件下载和上传
+
+## 1. 文件下载
+
+> 使用ResponseEntity实现下载文件的功能
+
+~~~java
+@RequestMapping("/testDown")
+public ResponseEntity<byte[]> testResponseEntity(HttpSession session) throws IOException {
+    //获取ServletContext对象
+    ServletContext servletContext = session.getServletContext();
+    //获取服务器中文件的真实路径
+    String realPath = servletContext.getRealPath("/static/img/1.jpg");
+    //创建输入流
+    InputStream is = new FileInputStream(realPath);
+    //创建字节数组
+    byte[] bytes = new byte[is.available()];
+    //将流读到字节数组中
+    is.read(bytes);
+    //创建HttpHeaders对象设置响应头信息
+    MultiValueMap<String, String> headers = new HttpHeaders();
+    //设置要下载方式以及下载文件的名字
+    headers.add("Content-Disposition", "attachment;filename=1.jpg");
+    //设置响应状态码(200)
+    HttpStatus statusCode = HttpStatus.OK;
+    //创建ResponseEntity对象。bytes为响应体、headers为响应头、statusCode为响应状态码
+    ResponseEntity<byte[]> responseEntity = new ResponseEntity<>(bytes, headers, statusCode);
+    //关闭输入流
+    is.close();
+    return responseEntity;
+}
+~~~
+
+## 2. 文件上传
+
+> 文件上传要求form表单的请求方式必须为`post`，并且添加属性`enctype=“multipart/form-data”`
+>
+> SpringMVC中将上传的文件封装到MultipartFile对象中，通过此对象可以获取文件相关信息
+
+- 在pom.xml中配置依赖
+
+  ~~~xml
+  <!-- https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
+  <dependency>
+      <groupId>commons-fileupload</groupId>
+      <artifactId>commons-fileupload</artifactId>
+      <version>1.3.1</version>
+  </dependency>
+  ~~~
+
+- 在SpringMVC.xml的配置文件中添加配置
+
+  ~~~xml
+  <!--必须通过文件解析器的解析才能将文件转换为MultipartFile对象，该bean是通过类型注入-->
+  <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+  </bean>
+  ~~~
+
+- 编写控制器方法
+
+  > 文件上传需要用到`MultipartFile`来接收表单传递的文件数据
+
+  ~~~java
+  @RequestMapping("/testUp")
+  public String testUp(MultipartFile photo, HttpSession session) throws IOException {
+      //获取上传的文件的文件名
+      String fileName = photo.getOriginalFilename();
+      //处理文件重名问题
+      String hzName = fileName.substring(fileName.lastIndexOf("."));
+      fileName = UUID.randomUUID().toString() + hzName;
+      //获取服务器中photo目录的路径
+      ServletContext servletContext = session.getServletContext();
+      String photoPath = servletContext.getRealPath("photo");
+      File file = new File(photoPath);
+      //判断路径是否存在
+      if(!file.exists()){
+          file.mkdir();
+      }
+      String finalPath = photoPath + File.separator + fileName;
+      //实现上传功能
+      photo.transferTo(new File(finalPath));
+      return "success";
+  }
+  ~~~
+
+  [上传文件：](https://s1.ax1x.com/2022/07/17/jIrfKA.png)
+                       [<img src="https://s1.ax1x.com/2022/07/17/jIrfKA.png" alt="jIrfKA.png" style="zoom:50%;" />](https://imgtu.com/i/jIrfKA)
 
 
 
