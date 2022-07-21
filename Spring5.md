@@ -702,34 +702,17 @@ bean.xml
   ~~~java
   package com.Keafmd.spring5.dao;
   
-  /**
-   * Keafmd
-   *
-   * @ClassName: UserDao
-   * @Description:
-   * @author: 牛哄哄的柯南
-   * @date: 2021-01-15 9:30
-   */
-  
   public interface UserDao {
   
       public void updat();
   }
   ~~~
-
+  
 - UserDaoimp.java，是UserDao接口的实现类
 
   ~~~java
   package com.Keafmd.spring5.dao;
   
-  /**
-   * Keafmd
-   *
-   * @ClassName: UserDaoImpl
-   * @Description: 实现类
-   * @author: 牛哄哄的柯南
-   * @date: 2021-01-15 9:31
-   */
   public class UserDaoImpl implements UserDao{
       @Override
       public void updat() {
@@ -737,7 +720,7 @@ bean.xml
       }
   }
   ~~~
-
+  
 - UserService.java
 
   ~~~java
@@ -1041,14 +1024,6 @@ bean.xml
   ~~~java
   package com.Keafmd.spring5.bean;
   
-  /**
-   * Keafmd
-   *
-   * @ClassName: Emp
-   * @Description: 员工类 级联赋值的第二种写法
-   * @author: 牛哄哄的柯南
-   * @date: 2021-01-15 9:53
-   */
   public class Emp {
   
       private String ename;
@@ -1080,7 +1055,7 @@ bean.xml
       }
   }
   ~~~
-
+  
 - bean4.xml
 
   ~~~xml
