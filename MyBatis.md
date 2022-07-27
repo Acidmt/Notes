@@ -1035,7 +1035,7 @@ public void testJDBC() throws SQLException, ClassNotFoundException {
   User{id=3,username='admin',password= '123456',age=23,sex='男',email='12345@qq.com'}
   ~~~
 
-### 3.4 实体类类型的参数
+### ==3.4 实体类类型的参数==
 
 > 若mapper接口中的方法参数为实体类对象时 此时可以使用`${}和#{}`，通过访问实体类对象中的==属性名==获取属性值，注意${}需要手动加单引号
 
@@ -1077,4 +1077,1939 @@ public void testJDBC() throws SQLException, ClassNotFoundException {
   }
   ~~~
 
+
+### ==3.5 使用@Param标识参数==
+
+> 是第二三种情况的优化。可以通过@Param注解标识mapper接口中的方法参数
+>
+> 此时，会将这些参数放在map集合中，以`@Param`注解的value属性值为键，以参数为值;；
+>
+> 只需要通过`${}和#{}`访问map集合的键就可以获取相对应的值， 注意${}需要手动加单引号
+
+- ParameterMapper.java接口
+
+  ~~~java
+  public interface ParameterMapper {
+      /**
+       * 验证登录 （使用@Param）
+       */
+      User checkLoginByParam(@Param("username") String username, @Param("password") String password);
+  }
+  ~~~
+
+- 对应在ParameterMapper.xml中配置
+
+  ~~~xml
+  <!--    以@Param的值为键，参数为值; 或以"param1"/"param2"为键，参数为值-->
+  <!--    User checkLoginByParam(@Param("username") String username, @Param("password") String password);-->
+  <select id="checkLoginByParam" resultType="User">
+      select * from t_user where username = #{username} and password = #{password}
+  </select>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  /**
+       * 情况5：使用@Param注解来命名参数
+       * 此时MyBatis会将这些参数放在一个map集合中，以两种方式进行存储
+       * a》以@Param的值为键，参数为值; @Param(value = "xxx")
+       * b》以param0，param1...为键，参数为值
+       */
+  @Test
+  public void testCheckLoginByParam(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      ParameterMapper mapper = sqlSession.getMapper(ParameterMapper.class);
+      User user = mapper.checkLoginByParam("admin","123456");
+      System.out.println(user);
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  User{id=3,username='admin',password= '123456',age=23,sex='男',email='12345@qq.com'}
+  ~~~
+
+## 4. @Param源码分析
+
+> sql语句的唯一标识 command name00
+
+分析代码
+目的：验证@Param存储参数的两种方式
+
+~~~java
+/**
+     * 情况5：使用@Param注解来命名参数
+     * 此时MyBatis会将这些参数放在一个map集合中，以两种方式进行存储
+     * a》以@Param的值为键，参数为值; @Param(value = "xxx")
+     * b》以param1，param2...为键，参数为值
+     */
+@Test
+public void testCheckLoginByParam(){
+    SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+    ParameterMapper mapper = sqlSession.getMapper(ParameterMapper.class);
+    User user = mapper.checkLoginByParam("RUOYI","123456");
+    System.out.println(user);
+}
+~~~
+
+- 打断点，进入debug模式
+  [断点位置：](https://s1.ax1x.com/2022/07/25/jvsA3j.png)
+
+  ​					[<img src="https://s1.ax1x.com/2022/07/25/jvsA3j.png" alt="jvsA3j.png" style="zoom: 50%;" />](https://imgtu.com/i/jvsA3j)		
+
+- 选择step into进行调试
+  [调试过程：](https://s1.ax1x.com/2022/07/25/jvs38J.png)      ![jvs38J.png](https://s1.ax1x.com/2022/07/25/jvs38J.png)](https://imgtu.com/i/jvs38J)
+- Mapper底层使用代理模式创建，我们按step into进入缓存cachedInvoker的invoke()方法
+  [方法：](https://imgtu.com/i/jvsRVf)					[![jvsRVf.png](https://s1.ax1x.com/2022/07/25/jvsRVf.png)](https://imgtu.com/i/jvsRVf)									
+
+- 进入了invoke()，再进一步进入了mapperMethod的execute()方法（step into）
+  [进入mapperMethod的execute()方法：](https://s1.ax1x.com/2022/07/25/jvs5GQ.png)         [![jvs5GQ.png](https://s1.ax1x.com/2022/07/25/jvs5GQ.png)](https://imgtu.com/i/jvs5GQ)
+
+- execute()方法中包含一个switch语句，分别对应增删改查等关键字对应的处理流程。
+  [execute()方法：](https://s1.ax1x.com/2022/07/25/jvsoxs.png) [![jvsoxs.png](https://s1.ax1x.com/2022/07/25/jvsoxs.png)](https://imgtu.com/i/jvsoxs)
+
+- 点击step over跳进switch语句内部，光标放在command上，点击加号，查看command内容。name为该sql语句的唯一标识，type为对应操作，即SELECT。
+  [switch语句内部：](https://s1.ax1x.com/2022/07/25/jvsHrq.png)   [![jvsHrq.png](https://s1.ax1x.com/2022/07/25/jvsHrq.png)](https://imgtu.com/i/jvsHrq)
+
+  [完整代码：](https://s1.ax1x.com/2022/07/25/jvsXIU.png)        [<img src="https://s1.ax1x.com/2022/07/25/jvsXIU.png" alt="jvsXIU.png" style="zoom:50%;" />](https://imgtu.com/i/jvsXIU)
+
+- 再点击step into，发现convertArgsToSqlCommandParam()方法是由paramNameResolver参数名称解析器中的getNamedParams()获取命名参数方法解析的，进一步step into进这个方法。
+  [convertArgsToSqlCommandParam()方法：](https://s1.ax1x.com/2022/07/25/jvySz9.png)          [<img src="https://s1.ax1x.com/2022/07/25/jvySz9.png" alt="jvySz9.png" style="zoom:50%;" />](https://imgtu.com/i/jvySz9)
+
+- 进入getNamedParams()方法，查看names，发现names是一个map集合，包含了传进来的"username"、"password" 参数。
+  [getNamedParams()方法：](https://s1.ax1x.com/2022/07/25/jvyPqx.png)
+    [<img src="https://s1.ax1x.com/2022/07/25/jvyPqx.png" alt="jvyPqx.png" style="zoom:50%;" />](https://imgtu.com/i/jvyPqx)
+
+- 由结果再翻上去看@Param的解析过程。
+  [@Param的解析过程：](https://s1.ax1x.com/2022/07/25/jvyViD.png)         [<img src="https://s1.ax1x.com/2022/07/25/jvyViD.png" alt="jvyViD.png" style="zoom:50%;" />](https://imgtu.com/i/jvyViD)
+
+- 回到getNamedParams()方法，继续step over
+  [getNamedParams()方法：](https://s1.ax1x.com/2022/07/25/jvy1df.png)                [<img src="https://s1.ax1x.com/2022/07/25/jvy1df.png" alt="jvy1df.png" style="zoom:50%;" />](https://imgtu.com/i/jvy1df)
+
+- 两次循环entrySet后，发现param集合中得到两种映射
+
+  - 以@Param的value作为key，参数值为value
+
+  - 以param1, param2...作为key，参数值为value
+
+    [结果：](https://s1.ax1x.com/2022/07/25/jvyhex.png)
+                                   [<img src="https://s1.ax1x.com/2022/07/25/jvyhex.png" alt="jvyhex.png" style="zoom:50%;" />](https://imgtu.com/i/jvyhex)       
+
+  至此，@Param源码分析完毕，印证结论：可以使用#{param1}和#{username}两种方式获得参数值。
+
+# 五. MyBatis的查询功能
+
+## 1. 查询一个实体类对象和多个数据
+
+> MyBatis查询功能：
+>
+> 1. 若查询出的数据只有一条，可以通过实体类对象、list集合、与map集合来接收
+> 2. 若查询处的数据有多条，可以用ist集合、与map集合来接收。一定不能通过实体类对象来接收，此时会抛出TooManyResultsException
+
+- SelectMapper.java接口
+
+  ~~~java
+  public interface SelectMapper {
+      /**
+       * 根据id查询用户信息
+       */
+      User getUserById(@Param("id") Integer id);
+      //查询多条数据
+      List<User> getAllUser();
+  }
+  ~~~
+
+- 配置SelectMapper.xml文件
+
+  ~~~xml
+  <!--User getUserById(@Param("id") Integer id);-->
+  <select id="getUserById" resultType="User">
+      select * from t_user where id = #{id}
+  </select>
   
+  <!--List<User> getAllUser();查询多条数据-->
+  <select id="getAlluser" resultType= "User">
+      select * from t_ user
+  </select>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  /**
+       * MyBatis的各种查询功能：
+       * 1。 若查询出的数据只有一条，可以通过实体类对象 /list集合/map集合来接收
+       * 2。 若查询处的数据有多条，一定不能通过实体类对象来接收，此时会抛出TooManyResultsException
+       */
+  @Test
+  public void testGetUserById(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SelectMapper mapper = sqlSession.getMapper(SelectMapper.class);
+      User userById = mapper.getUserById(4);
+      System.out.println(userById);
+  }
+  
+  //查询多条数据
+  @Test
+  public void testGetAllUser(){
+      SqlSession sqlSession = sqlSessionUtils.getSqlSession();
+      SelectMapper mapper = sqlSession.getMapper(SelectMapper.class);
+      System.out.println(mapper.getAllUser()) ;
+  }
+  ~~~
+
+  运行结果
+
+  ~~~shell
+  User{id=3,username= 'admin',password= '123456',age=23,sex='男',email= '12345@qq.com'}
+  ~~~
+
+  多条数据运行结果：
+
+  ~~~shell
+  [User{id=3,username= 'admin',password= '123456',age=23,sex='男',email= '12345@qq.com'},
+  User{id=4,username= 'lisi',password= '123456',age=18,sex='男',email= '122325@qq.com'}]
+  ~~~
+
+## 2. 查询单个数据
+
+> xml中sql标签的resultType属性值有别名。
+>
+> 如：
+>
+> java. Lang. Integer-->int, integer
+> int-->_ int,_ integer
+> Map- - >map
+> String-->string
+
+[完整别名：](https://s1.ax1x.com/2022/07/25/jvfFcF.png)
+
+​									[<img src="https://s1.ax1x.com/2022/07/25/jvfFcF.png" alt="jvfFcF.png" style="zoom: 67%;" />](https://imgtu.com/i/jvfFcF)
+
+[别名：](https://s1.ax1x.com/2022/07/25/jvfQ1O.png)
+
+​									[<img src="https://s1.ax1x.com/2022/07/25/jvfQ1O.png" alt="jvfQ1O.png" style="zoom: 67%;" />](https://imgtu.com/i/jvfQ1O)
+
+- SelectMapper.java接口
+
+  ~~~java
+  public interface SelectMapper {
+      /**
+       * 查询用户信息的总记录数
+       */
+      Integer getCount();
+  }
+  ~~~
+
+- 配置文件
+
+  ~~~xml
+  <!--Integer getCount();-->
+  <!--integer写大小写都可以，写 Integer/integer/_int/_integer  都可以，都是java.lang.Integer的别名-->
+  <select id="getCount" resultType="java.lang.Integer">
+      select count(*) from t_user
+  </select>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  /**
+       * 获取记录数
+       *
+       * MyBatis中设置了默认的类型别名
+       * Java.lang.Integer -> int, integer
+       * int -> _int, _integer
+       * Map -> map
+       * List -> list
+       */
+  @Test
+  public void testGetCount(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SelectMapper mapper = sqlSession.getMapper(SelectMapper.class);
+      System.out.println(mapper.getCount());
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  2
+  # 数据库有两条数据
+  ~~~
+
+## 3. 查询数据为map集合
+
+> 如果我们查询的表没有实体类对象，就把它映射成map集合。例如把它传到网页端，就映射成json对象，所以转成map很常用。
+>
+> 要注意map集合是以表的字段为键。
+
+- SelectMapper.java接口
+
+  ~~~java
+  public interface SelectMapper {
+      /**
+       * 根据id查询用户信息为一个map集合
+       */
+      Map<String, Object> getUserByIdToMap(Integer id);
+  }
+  ~~~
+
+- 配置xml文件
+
+  ~~~xml
+  <!--Map<String, Object> getUserByIdToMap(Integer id);-->
+  <select id="getUserByIdToMap" resultType="map">
+      select * from t_user where id = #{id}
+  </select>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  /**
+       * 如果没有实体类对象，就把它映射成map集合
+       * 从数据库中查询数据，将其映射为map集合
+       * 例如把它传到网页端，就映射成json对象，所以转成map很常用
+       *
+       * 以字段为键
+       */
+  @Test
+  public void testgetUserByIdToMap(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SelectMapper mapper = sqlSession.getMapper(SelectMapper.class);
+      System.out.println(mapper.getUserByIdToMap(4));
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  {password=123456, sex=男,id=3,age=23,email=12345@qq.com,username=admin}
+  ~~~
+
+## 4. 查询多条数据为map集合
+
+> 因为查询的数据有多个，而map集合一次只能接收一个。所以这里有两种解决方法：
+>
+> 1. 创建一个Map类型的List集合。
+> 2. 使用@MapKey注解，此时就可以将每条数据转换的map集合作为值，以某个字段作为键(一般选择不重复的字段。如：id)
+
+- SelectMapper接口
+
+  ~~~java
+  public interface SelectMapper {
+      /**
+       * 查询所有用户信息为map集合，每一条记录是一个map
+       */
+      //方式一：
+      List<Map<String, Object>> getAllUserToMap();
+  
+      //方式二：
+      @MapKey("id")
+      Map<String, Object> getAllUserToMap();
+  }
+  ~~~
+
+- 编写xml配置文件
+
+  ~~~xml
+  <!--Map<String, Object> getAllUserToMap();-->
+  <select id="getAllUserToMap" resultType="map">
+      select * from t_user
+  </select>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  @Test
+  public void testGetAllUserToMap(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SelectMapper mapper = sqlSession.getMapper(SelectMapper.class);
+      system.out.println(mapper.getAlluserToMap());
+  }
+  ~~~
+
+  List方式运行结果：
+
+  ~~~shell
+  [{id=3,username= 'admin',password= '123456',age=23,sex='男',email= '12345@qq.com'},
+  {id=4,username= 'lisi',password= '123456',age=18,sex='男',email= '122325@qq.com'}]
+  ~~~
+
+  注解方式运行结果：
+
+  ~~~shell
+  {
+  3={id=3,username= 'admin',password= '123456',age=23,sex='男',email= '12345@qq.com'},
+  4={id=4,username= 'lisi',password= '123456',age=18,sex='男',email= '122325@qq.com'}
+  }
+  ~~~
+
+# 六. 特殊SQL的执行
+
+## 1. 模糊查询
+
+> 实现有三种方式：
+>
+> 1. 通过`${}`方式
+> 2. 通过`('%',#{username},'%')`这种拼接方式
+> 3. 第三种是推荐方法：`"%"#{username}"%"`
+
+- SQLMapper类
+
+  ~~~java
+  public interface SQLMapper {
+      /**
+       * 根据用户名模糊查询用户信息
+       */
+      List<User> getUserByLike(@Param("username") String username);
+  }
+  ~~~
+
+- SQLMapper.xml
+
+  ~~~xml
+  <!--List<User> getUserByLike(@Param("username") String username);-->
+  <!--使用#{}，因为包括在单引号里，会被认为是字符串的一部分:
+  			select * from t_user where username like '%#{username}%'-->
+  <!--三种方式-->
+  <select id="getUserByLike" resultType="User">
+      <!--第一种 select * from t_user where username like '%${username}%'
+      <!--第二种 select * from t_user where username like concat('%', #{username}, '%')-->
+      <!--第三种 推荐使用-->
+      select * from t_user where username like "%"#{username}"%"
+  </select>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  @Test
+  public void testGetUserByLike(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SQLMapper mapper = sqlSession.getMapper(SQLMapper.class);
+      List<User> user = mapper.getUserByLike("RUOYI");
+      System.out.println(user);
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  [User{id=3, username='admin' , password= '123456', age=23, sex='男', email='12345@qq.com'}]
+  ~~~
+
+## 2. 批量删除
+
+> 不能使用#{}，因为他会自动添加单引号，变成delete from t_user where id in ('9，10，11')
+
+- SQLMapper.java类
+
+  ~~~java
+  public interface SQLMapper {
+      /**
+       * 批量删除
+       */
+      int deleteMore(String ids);
+  }
+  ~~~
+
+- SQLMapper.xml
+
+  ~~~xml
+  <!--int deleteMore(String ids);-->
+  <!--不能使用#{}，因为他会自动添加单引号，变成delete from t_user where id in ('9，10，11')-->
+  <delete id="deleteMore">
+      delete from t_user where id in (${ids})
+  </delete>
+  ~~~
+
+- 测试类
+
+  ~~~java
+  @Test
+  public void testDeleteMore(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SQLMapper mapper = sqlSession.getMapper(SQLMapper.class);
+      int result = mapper.deleteMore("12, 13");
+      System.out.println(result);
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  1
+  # 表明成功删除了一条数据
+  ~~~
+
+## 3. 动态设置表名
+
+> 获取表名参数时候只能使用`${}`。因为表名不能有引号
+
+- SQLMapper.java类
+
+  ~~~java
+  public interface SQLMapper {
+      /**
+       * 查询指定表中的数据
+       */
+      List<User> getUserByTableName(String tableName);
+  }
+  ~~~
+
+- SQLMapper.xml
+
+  ~~~xml
+  <!--List<User> getUserByTableName(String tableName);-->
+  <select id="getUserByTableName" resultType="User">
+      select * from ${tableName}
+  </select>
+  ~~~
+
+- 测试类
+
+  ~~~java
+  @Test
+  public void testGetUserByTableName(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SQLMapper mapper = sqlSession.getMapper(SQLMapper.class);
+      List<User> t_user = mapper.getUserByTableName("t_user");
+      System.out.println(t_user);
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  [User{id=3,username= 'admin',password= '123456',age=23,sex='男',email= '12345@qq.com'},
+  User{id=4,username= 'lisi',password= '123456',age=18,sex='男',email= '122325@qq.com'}]
+  ~~~
+
+## 4. 添加功能获取自增主键
+
+> 使用场景：在给学生分配班级时，获取班级id
+>
+> 需要用到sql标签两个属性：
+>
+> 1. useGeneratedKeys：设置当前标签中的sql使用了自增的主键 (id)
+> 2. keyProperty：将自增的主键的值 赋值给 传输到映射文件中的参数的某个属性（user.id）
+
+- SQLMapper.java类
+
+  ~~~java
+  public interface SQLMapper {
+      /**
+       * 添加用户
+       */
+      void insetUser(User user);
+  }
+  ~~~
+
+- SQLMapper.xml
+
+  ~~~xml
+  <!--void insetUser(User user);-->
+  <!--方法的返回值是固定的
+          useGeneratedKeys    设置当前标签中的sql使用了自增的主键 (id)
+          keyProperty         将自增的主键的值 赋值给 传输到映射文件中的参数的某个属性（user.id）
+  -->
+  <insert id="insetUser" useGeneratedKeys="true" keyProperty="id">
+      insert into t_user values(null, #{username}, #{password},#{age},#{gender},#{email})
+  </insert>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  @Test
+  public void testInsetUser(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      SQLMapper mapper = sqlSession.getMapper(SQLMapper.class);
+      mapper.insetUser(new User(null, "wangwu","123",18,"man","123@163.com"));
+  }
+  ~~~
+
+
+ # 七. 自定义映射resultMap
+
+> 字段名与属性名不一致，或者处理多对一一对多的关系。
+
+## 1. 准备工作
+
+- 新建一个`t_emp`表，用来存放用户信息。
+
+  [创建t_emp表：](https://s1.ax1x.com/2022/07/26/jxzLQg.png)
+                                  [<img src="https://s1.ax1x.com/2022/07/26/jxzLQg.png" alt="jxzLQg.png" style="zoom:67%;" />](https://imgtu.com/i/jxzLQg)
+
+  > 最后的did字段与`t_dept`表绑定
+
+- 创建一个`t_dept`表，模拟部门数据库。
+  [创建t_dept表：](https://s1.ax1x.com/2022/07/26/jxzwL9.png)
+                                  [<img src="https://s1.ax1x.com/2022/07/26/jxzwL9.png" alt="jxzwL9.png" style="zoom: 67%;" />](https://imgtu.com/i/jxzwL9)
+
+- 插入一些测试数据
+
+  [t_emp测试数据：](https://s1.ax1x.com/2022/07/26/jzSiSU.png)
+                                   [<img src="https://s1.ax1x.com/2022/07/26/jzSiSU.png" alt="jzSiSU.png" style="zoom: 80%;" />](https://imgtu.com/i/jzSiSU)
+
+  [t_dept测试数据：](https://s1.ax1x.com/2022/07/26/jzSVm9.png)
+                                    [<img src="https://s1.ax1x.com/2022/07/26/jzSVm9.png" alt="jzSVm9.png" style="zoom:80%;" />](https://imgtu.com/i/jzSVm9)
+
+  > 上面添加了三个部门。`t_emp`表中的数据用`did`字段与`t_dept`表绑定。
+
+## 2. 建立mapper、pojo、映射文件
+
+- 在pojo包下创建数据库映射类Emp.java映射`t_emp`表
+
+  ~~~java
+  package com.atguigu.mybatis.pojo;
+  
+  /**
+   * @author Chen Ruoyi
+   * @date 2022/3/1 9:07 PM
+   */
+  public class Emp {
+      private Integer eid;
+      private String empName;
+      private Integer age;
+      private String sex;
+      private String email;
+  	
+      public Emp() {
+      }
+  
+      public Emp(Integer eid, String empName, Integer age, String sex, String email) {
+          this.eid = eid;
+          this.empName = empName;
+          this.age = age;
+          this.sex = sex;
+          this.email = email;
+      }
+  
+      @Override
+      public String toString() {
+          return "Emp{" +
+              "eid=" + eid +
+              ", empName='" + empName + '\'' +
+              ", age=" + age +
+              ", sex='" + sex + '\'' +
+              ", email='" + email + '\'' +
+              '}';
+      }
+  
+      public Integer getEid() {
+          return eid;
+      }
+  
+      public void setEid(Integer eid) {
+          this.eid = eid;
+      }
+  
+      public String getEmpName() {
+          return empName;
+      }
+  
+      public void setEmpName(String empName) {
+          this.empName = empName;
+      }
+  
+      public Integer getAge() {
+          return age;
+      }
+  
+      public void setAge(Integer age) {
+          this.age = age;
+      }
+  
+      public String getSex() {
+          return sex;
+      }
+  
+      public void setSex(String sex) {
+          this.sex = sex;
+      }
+  
+      public String getEmail() {
+          return email;
+      }
+  
+      public void setEmail(String email) {
+          this.email = email;
+      }
+  }
+  ~~~
+
+- 接着在pojo包下创建数据库映射类Dept.java映射`t_dept`表
+
+  ~~~java
+  package com.atguigu.mybatis.pojo;
+  
+  public class Dept {
+      private Integer did;
+      private String deptName;
+  
+      @Override
+      public String toString() {
+          return "Dept{" +
+              "did=" + did +
+              ", deptName='" + deptName + '\'' +
+              '}';
+      }
+  
+      public Integer getDid() {
+          return did;
+      }
+  
+      public void setDid(Integer did) {
+          this.did = did;
+      }
+  
+      public String getDeptName() {
+          return deptName;
+      }
+  
+      public void setDeptName(String deptName) {
+          this.deptName = deptName;
+      }
+  
+      public Dept() {
+      }
+  
+      public Dept(Integer did, String deptName) {
+          this.did = did;
+          this.deptName = deptName;
+      }
+  }
+  ~~~
+
+- 创建EmpMapper.java接口和DeptMapper.java接口
+
+  ~~~java
+  public interface EmpMapper {
+  }
+  ~~~
+
+  ~~~java
+  public interface DeptMapper {
+  }
+  ~~~
+
+- 创建接口的xml文件
+  DeptMapper.xml
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <!DOCTYPE mapper
+          PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+          "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.atguigu.mybatis.mapper.DeptMapper">
+  
+  </mapper>
+  ~~~
+
+  EmpMapper.xml
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <!DOCTYPE mapper
+          PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+          "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.atguigu.mybatis.mapper.EmpMapper">
+  
+  </mapper>
+  ~~~
+
+[项目结构：](https://s1.ax1x.com/2022/07/26/jzCxjU.png)
+
+​      									 	[<img src="https://s1.ax1x.com/2022/07/26/jzCxjU.png" alt="jzCxjU.png" style="zoom:50%;" />](https://imgtu.com/i/jzCxjU)		
+
+## 3. 映射实体类属性与字段不对应情况
+
+>  我们的Emp.java中的实体类名`empName`和数据库中的`emp_Name`字段不一致。此时通过EmpMapper.xml接口查询数据库不会报错
+
+- EmpMapper.java
+
+  ~~~java
+  public interface EmpMapper {
+  	//查询t_emp表数据
+  	List<Emp> getAllEmp();
+      
+  }
+  ~~~
+
+- EmpMapper.xml
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <!DOCTYPE mapper
+          PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+          "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.atguigu.mybatis.mapper.EmpMapper">
+      <!--List<Emp> getAllEmp();-->
+      <select id="getAllEmp" resultType="Emp">
+          select * from t_emp
+      </select>
+  </mapper>
+  ~~~
+
+- 测试类
+
+  ~~~java
+  @Test
+  public void testGetAllEmp(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      EmpMapper mapper = sqlSession.getMapper(EmpMapper.class);
+      List<Emp> list = mapper.getAllEmp();
+      list.forEach(emp->System.out.println(emp));
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  Emp{eid=1, empName= 'null', age=23, sex='男', email=' 123@qq.com'}
+  Emp{eid=2, empName=' null', age=32, sex='女', email='123@qq. com'}
+  Emp{eid=3, empName= 'null', age=12, sex='男', email='123@qq.com' }
+  Emp{eid=4, empName='null', age=34, sex='女', email='123@qq.com'}
+  Emp{eid=5, empName=' null', age=28, sex='男', email='123@qq. com'}
+  
+  ~~~
+
+  > 我们可以看到当映射字段不对应时，会出现实体类属性为`null`情况。
+
+## 4. resultMap处理字段和属性的映射关系
+
+> 我们可以通过以下两种方式处理字段名和实体类中的属性的映射关系：
+>
+> 1. 可以通过为字段起别名的方式，保证和实体类中的属性名保持一致
+> 2. 可以在MyBatis的核心配置文件中设置一个全局配置信息mapUnderscoreToCamelCase，可以在查询表中数据时，自动将`xx_xx`类型的字段名转换为驼峰
+>    例如:字段名user_name，设置了mapUnderscoreToCamelCase，此时字段名就会转换为 userName
+
+### 4.1 用起别名的方式保证字段名与属性名一致
+
+> 和sql中一样，用`字段名 属性名`（如`emp_name empName`）来给字段起别名使二者一致。
+
+EmpMapper.xml
+
+~~~xml
+<!--List<Emp> getAllEmp();-->
+<select id="getAllEmp" resultType="Emp">
+    select eid, emp_name empName, age, sex, email from t_emp
+</select>
+~~~
+
+此时再运行：
+
+~~~shell
+Emp{eid=1, empName='张三',age=23,sex='男',email='123@qq.com'}
+Emp{eid=2, empName='李四',age=32,sex='女',email='123@qq.com'}
+Emp{eid=3, empName='王五',age=12,sex='男',email='123@qq.com'}
+Emp{eid=4, empName='赵六',age=34,sex='女',email='123@qq.com'}
+Emp{eid=5, empName='田七',age=28,sex='男',email='123@qq.com'}
+~~~
+
+可以看到`empName`不再为null
+
+### 4.2 配置核心文件自动映射
+
+> 我们可以在mybatis-config.xml中配置文件将字段名中`_`自动转换为驼峰
+
+mybatis-config.xml
+
+~~~xml
+<!--设置MyBatis的全局配置-->
+<settings>
+    <!--将_自动映射为驼峰-->
+    <setting name="mapUnderscoreToCamelCase" value="true"/>
+</settings>
+~~~
+
+此时就会将带`_`的字段名自动转换为驼峰。
+
+### 4.3 通过resultMap设置自定义的映射关系
+
+> 在映射文件sql标签中通过resultMap属性可以自定义映射关系。resultMap属性需要绑定一个映射关系。
+>
+> resultMap：设置自定义映射关系
+>         id：唯一标识
+>         type：映射的实体类型
+>
+> 子标签：id：设置主键的映射关系， result设置其他的映射关系
+>     	property：设置映射关系中的属性名，必须是type属性所设置的实体类类型的属性名
+>     	column：设置映射关系中的字段名，必须是sql语句查询出来的字段名
+>
+> 如果使用resultMap，就需要设置所有属性
+
+- 在EmpMapper.xml中设置
+
+  ~~~xml
+  <!--
+          resultMap设置自定义映射关系
+          id      唯一标识
+          type    映射的实体类型
+  
+          子标签：id 设置主键的映射关系， result设置其他的映射关系
+              property    设置映射关系中的属性名，必须是type属性所设置的实体类类型的属性名
+              column      设置映射关系中的字段名，必须是sql语句查询出来的字段名
+  
+          如果使用resultMap，就所有属性都需要设置
+  -->
+  <resultMap id="empResultMap" type="Emp">
+      <id property="eid" column="eid"></id>
+      <result property="empName" column="emp_name"></result>
+      <result property="age" column="age"></result>
+      <result property="sex" column="sex"></result>
+      <result property="email" column="email"></result>
+  </resultMap>
+  
+  <select id="getAllEmp" resultMap="empResultMap">
+      select * from t_emp
+  </select>
+  ~~~
+
+## 5. 多对一映射关系
+
+> 应用场景：查询员工信息以及员工所对应的部门信息(对应对象)
+>
+> 有三种解决方式。下面详解：
+
+### 5.1 级联方式处理映射关系
+
+> 在员工实体类中添加`private Dept dept`字段，并创建get、set方法。
+>
+> 目的：查询员工以及员工所对应的部门信息。此时我们可以看到这是一(dept)对多(did、deptName)。
+
+- EmpMapper.xml
+
+  ~~~xml
+  <!--    多对一映射关系，方式一：级联属性赋值-->
+  <resultMap id="getEmpAndDeptResultMapOne" type="Emp">
+      <id property="eid" column="eid"></id>
+      <result property="empName" column="emp_name"></result>
+      <result property="age" column="age"></result>
+      <result property="sex" column="sex"></result>
+      <result property="email" column="email"></result>
+      <result property="dept.did" column="did"></result>
+      <result property="dept.deptName" column="dept_name"></result>
+  </resultMap>
+  
+  <!--Emp getEmpAndDept(@Param("eid") Integer eid);-->
+  <select id="getEmpAndDept" resultMap="getEmpAndDeptResultMapOne">
+      select * from t_emp left join t_dept on t_emp.eid = t_dept.did WHERE t_emp.eid = #{eid}
+  </select>
+  ~~~
+
+  > 在第8行代码中用`dept.did`方式映射did字段。第9行同第8行。
+
+- EmpMapper.java类中
+
+  ~~~java
+  public interface EmpMapper {
+      /**
+       * 查询员工及其所对应的部门信息
+       */
+      Emp getEmpAndDept(@Param("eid") Integer eid);
+  }
+  ~~~
+
+- 测试类
+
+  ~~~java
+  /**
+       * 处理多对一的映射关系
+       * a> 级联属性赋值
+       * b> association
+       * c> 分步查询
+       */
+  @Test
+  public void testGetEmpAndDept(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      EmpMapper mapper = sqlSession.getMapper(EmpMapper.class);
+      Emp empAndDept = mapper.getEmpAndDept(3);
+      System.out.println(empAndDept);
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  Emp{eid=1,empName= '张王',age=23, sex='男',email= '123@qq.com',dept=Dept{did=1,deptName= 'A'}}
+  ~~~
+
+### 5.2 使用association处理映射关系
+
+> association专门用于处理多对一映射关系。标签可以替代上面两行`dept.deptName`和`dept.did`。其属性如下：
+
+association标签属性：
+
+|  属性名  |                             描述                             |
+| :------: | :----------------------------------------------------------: |
+| property | 处理多对一所对应的属性，需要处理多对一的实体类映射关系的属性名 |
+| javaType |                      property属性的类型                      |
+
+association子标签属性：
+
+| 标签名 |                             描述                             |
+| :----: | :----------------------------------------------------------: |
+|   id   | 主要用于主键。property属性用于映射和column属性值为被映射字段 |
+| result |        property属性用于映射和column属性值为被映射字段        |
+
+- EmpMapper.xml
+
+  ~~~xml
+  <resultMap id="empDeptMap" type="Emp">
+      <id column="eid" property="eid"></id>
+      <result column="ename" property="ename"></result>
+      <result column="age" property="age"></result>
+      <result column="sex" property="sex"></result>
+      <association property="dept" javaType="Dept">
+          <id column="did" property="did"></id>
+          <result column="dname" property="dname"></result>
+      </association>
+  </resultMap>
+  <!--Emp getEmpAndDeptByEid(@Param("eid") int eid);-->
+  <select id="getEmpAndDeptByEid" resultMap="empDeptMap">
+      select * from t_emp left join t_dept on t_emp.eid = t_dept.did WHERE t_emp.eid = #{eid}
+  </select>
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  Emp{eid=3, empName= '王五',age=12, sex='男',email='123@qq.com',dept=Dept{did=3,deptName='C'}
+  ~~~
+
+### 5.3 分步查询(常用)
+
+> 主要分为两步：
+>
+> 1. 查询员工信息
+> 2. 根据员工所对应的部门id查询部门信息
+
+- 查询员工信息
+
+  - EmpMapper.java类
+
+    ~~~java
+    public interface EmpMapper {
+        /**
+    	* 通过分步查询查询员工信息 * @param eid
+    	* @return
+    	*/
+        Emp getEmpByStep(@Param("eid") int eid);
+    }
+    ~~~
+
+  - EmpMapper.xml
+
+    ~~~xml
+    <!--com.atguigu.mybatis.mapper.DeptMapper.getEmpAndDeptByStepTwo是这条sql语句的全类名-->
+    <resultMap id="getEmpAndDeptByStepResultMap" type="Emp">
+        <id property="eid" column="eid"></id>
+        <result property="empName" column="emp_name"></result>
+        <result property="age" column="age"></result>
+        <result property="sex" column="sex"></result>
+        <result property="email" column="email"></result>
+        <!--
+            select: 设置分步查询的sql的唯一标识（namespace.SQLId或mapper接口的全类名.方法名）
+            column：分步查询的条件
+            fetchType: 当开启了全局的延迟记载后，可通过此属性手动控制延迟加载的效果
+            fetchType："lazy/eager" lazy表示延迟加载，eager表示立即加载
+    -->
+        <association property="dept"
+                     select="com.atguigu.mybatis.mapper.DeptMapper.getEmpAndDeptByStepTwo"
+                     column="did"
+                     fetchType="eager">
+        </association>
+    </resultMap>
+    
+    <!--Emp getEmpAndDeptByStepOne(@Param("eid") Integer eid);-->
+    <select id="getEmpAndDeptByStepOne" resultMap="getEmpAndDeptByStepResultMap">
+        select * from t_emp where eid = #{eid}
+    </select>
+    ~~~
+
+    > association属性：
+    >
+    > - property：将select查询结果赋值给此属性值。处理多对一所对应的属性，需要处理多对一的实体类映射关系的属性名
+    > - select: 设置分步查询的sql的唯一标识（namespace.SQLId或mapper接口的全类名.方法名）即是哪个sql语句查询出来的。
+    > - column：分步查询的条件，指定将哪一列的值传给这个方法，select指定方法。
+    > - fetchType: 当开启了全局的延迟记载后，可通过此属性手动控制延迟加载的效果
+    > - fetchType："lazy/eager" lazy表示延迟加载，eager表示立即加载
+    >
+    > 当我们执行到id为`getEmpAndDeptByStepOne`的sql标签时，通过resultMap的`getEmpAndDeptByStepResultMap`找到对应的映射关系。在执行到第14行时通过association的`select`指定运行`DeptMapper.xml`文件中`select`与之对应的id标签。查询条件是`column`的属性值，在这里是`did`，即将员工的did字段值赋值给`did`，然后查找对应的Emp(部门)。查询到之后将值赋值给`property`的属性值。
+
+- 根据员工所对应的部门id查询部门信息
+
+  - DeptMapper.java接口
+
+    ~~~java
+    public interface DeptMapper {
+    	/**
+    	* 分步查询的第二步:根据员工所对应的did查询部门信息
+    	*/
+    	Dept getEmpDeptByStep(@Param("did") int did);
+    }
+    ~~~
+
+  - DeptMapper.xml
+
+    ~~~xml
+    <!--Dept getEmpAndDeptByStepTwo(Integer did);-->
+    <!--分步查询可以实现懒加载-->
+    <select id="getEmpAndDeptByStepTwo" resultType="Dept">
+        select * from t_dept where did = #{did}
+    </select>
+    ~~~
+
+- 编写测试文件
+
+  ~~~java
+  @Test
+  public void testGetEmpAndDeptBystep(){
+      SqlSession sqlSession = SqlSessionUtils .getSqlSession();
+      EmpMapper mapper = sqlSession. getMapper(EmpMapper.class);
+      Emp emp = mapper . getEmpAndDeptBystepOne(3);
+      System. out . println(emp);
+  }
+  ~~~
+
+  运行结果：
+  [分布查询执行结果：](https://s1.ax1x.com/2022/07/26/jzqwFS.png)
+                               [<img src="https://s1.ax1x.com/2022/07/26/jzqwFS.png" alt="jzqwFS.png" style="zoom:50%;" />](https://imgtu.com/i/jzqwFS)
+
+### 5.4 分布查询的优点
+
+> 优点：可以实现延迟加载(按需加载)，但是必须在核心配置文件中设置全局配置信息：
+>
+> - lazyLoadingEnabled：延迟加载的全局开关。当开启时，所有关联对象都会延迟加载
+> - aggressiveLazyLoading：当开启时，任何方法的调用都会加载该对象的所有属性。 否则，每个属性会按需加载。所以属性值为false(默认)。
+>
+> 此时就可以实现按需加载，获取的数据是什么，就只会执行相应的sql，也成为延迟加载。可通过association和 collection中的fetchType属性设置当前的分步查询是否使用延迟加载，fetchType=“lazy(延迟加载)|eager(立即加载)”
+
+- 在mybatis-config.xml中开启全局延迟加载
+
+  ~~~xml
+  <settings>
+      <!--开启延迟加载-->
+      <setting name="lazyLoadingEnabled",value="true"/>
+  </settings>
+  ~~~
+
+- 在association.xml中设置是否开启延迟加载(lazy(延迟加载)|eager(立即加载))
+
+  ~~~xml
+  <association property="dept"
+               select="com.atguigu.mybatis.mapper.DeptMapper.getEmpAndDeptByStepTwo"
+               column="did"
+               fetchType="lazy">
+  </association>
+  ~~~
+
+
+- 修改测试文件
+
+  ~~~java
+  @Test
+  public void testGetEmpAndDeptBystep(){
+      SqlSession sqlSession = SqlSessionUtils .getSqlSession();
+      EmpMapper mapper = sqlSession. getMapper(EmpMapper.class);
+      Emp emp = mapper.getEmpAndDeptBystepOne(3);
+      System.out.println(emp.getEmpName());
+  }
+  ~~~
+
+  [运行结果：](https://s1.ax1x.com/2022/07/26/jzjt1g.png)
+                                       [<img src="https://s1.ax1x.com/2022/07/26/jzjt1g.png" alt="jzjt1g.png" style="zoom: 50%;" />](https://imgtu.com/i/jzjt1g)    
+
+  > 我们可以看到当我们只是获取员工名字时，并没有加载`getEmpAndDeptByStepTwo`。而只执行了`getEmpAndDeptByStepOne`。这就是延迟加载(按需加载)。
+
+## 6. 一对多映射关系
+
+> 场景：根据部门id查找部门以及部门中的员工信息(对应集合)
+>
+> 需要查询一对多、多对一的关系，需要在“一”的pojo中加入List<多>属性，在“多”的pojo中加入“一”。
+> 也就是说，在Dept类中，要加入`private List<Emp> emps;`，在Emp类中，要加入`private Dept dept;`。然后给他们各自添加get、set方法，重写构造器和toString()
+
+### 6.1 通过collection解决一堆过的问题
+
+- 现在Dept.java中添加一个集合`private List<Emp> emps`，之后重写toString()方法和get()、set()方法。
+
+- DeptMapper.java接口
+
+  ~~~java
+  public interface DeptMapper {
+      /**
+       * 获取部门以及部门中所有的员工信息
+       */
+      Dept getDeptAndEmp(@Param("did") Integer did);
+  }
+  ~~~
+
+- DeptMapper.xml
+
+  ~~~xml
+  <resultMap id="deptAndEmpResultMap" type="Dept">
+      <id property="did" column="did"></id>
+      <result property="deptName" column="dept_name"></result>
+      <!--
+              collection：处理一对多的映射关系
+              ofType：表示该属性对应的集合中存储数据的类型
+  	-->
+      <collection property="emps" ofType="Emp">
+          <id property="eid" column="eid"></id>
+          <result property="empName" column="emp_name"></result>
+          <result property="age" column="age"></result>
+          <result property="sex" column="sex"></result>
+          <result property="email" column="email"></result>
+      </collection>
+  </resultMap>
+  <!--Dept getDeptAndEmp(@Param("did") Integer did);-->
+  <select id="getDeptAndEmp" resultMap="deptAndEmpResultMap">
+      select * from t_dept left join t_emp on t_dept.did = t_emp.did where t_dept.did = #{did}
+  </select>
+  ~~~
+
+  collection属性介绍：
+
+  |  属性名  |                 描述                 |
+  | :------: | :----------------------------------: |
+  | property |               对应集合               |
+  |  ofType  | 表示该属性对应的集合中存储数据的类型 |
+
+- 编写测试类
+
+  ~~~java
+  @Test
+  public void testGetDeptAndEmp(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DeptMapper mapper = sqlSession.getMapper(DeptMapper.class);
+      Dept dept = mapper.getDeptAndEmp(1);
+      System.out.println(dept);
+  }
+  ~~~
+
+  > 查询did为1的部门及部门的员工信息。
+
+  运行结果：
+
+  ~~~shell
+  Dept{
+  	did=1, deptName='A', emps=[
+  		Emp{eid=1, empName=' 张三'，age=23, sex='男', email='123@qq.com', dept=null}, 
+  		Emp{eid=4, empName= '赵六'，age=34, sex='女' ，email='123@qq.com', dept=null}
+  	]
+  }
+  ~~~
+
+### 6.2 分步查询
+
+- 查询部门信息
+
+  - DeptMapper.java接口
+
+    ~~~java
+    public interface DeptMapper {
+        /**
+         * 分步查询 查询部门及其所有的员工信息
+         * 第一步  查询部门信息
+         */
+        Dept getDeptAndEmoByStepOne(@Param("did") Integer did);
+    }
+    ~~~
+
+  - DeptMapper.xml
+
+    ~~~xml
+    <!--分步查询-->
+    <resultMap id="deptAndEmoByStepOneMap" type="Dept">
+        <id property="did" column="did"></id>
+        <result property="deptName" column="dept_name"></result>
+        <collection property="emps"
+                    select="com.atguigu.mybatis.mapper.EmpMapper.getDeptAndEmpByStepTwo"
+                    column="did">
+        </collection>
+    </resultMap>
+    <!--Dept getDeptAndEmoByStepOne(@Param("did") Integer did);-->
+    <select id="getDeptAndEmoByStepOne" resultMap="deptAndEmoByStepOneMap">
+        select * from t_dept where did = #{did}
+    </select>
+    ~~~
+
+- 根据部门id查询部门中的所有员工
+
+  - EmpMapper.java
+
+    ~~~java
+    public interface EmpMapper {
+        /**
+         * 分步查询 查询部门及其所有的员工信息
+         * 第一步  查询部门信息
+         * 第二步  根据查询员工信息
+         */
+        List<Emp> getDeptAndEmpByStepTwo(@Param("did") Integer did);
+    }
+    ~~~
+
+  - EmpMapper.xml
+
+    ~~~xml
+    <!--分步查询-->
+    <!--List<Emp> getDeptAndEmpByStepTwo(@Param("did") Integer did);-->
+    <select id="getDeptAndEmpByStepTwo" resultType="Emp">
+        select * from t_emp where did = #{did}
+    </select>
+    ~~~
+
+- 编写测试类
+
+  ~~~java
+  @Test
+  public void testGetDeptAndEmpBySteps(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DeptMapper mapper = sqlSession.getMapper(DeptMapper.class);
+      Dept dept = mapper.getDeptAndEmoByStepOne(2);
+      System.out.println(dept.getDeptName());
+      System.out.println("-----****************======分割线=======-----****************");
+      System.out.println(dept);
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  Dept{
+  	did=1, deptName='A', emps=[
+  		Emp{eid=1, empName=' 张三'，age=23, sex='男', email='123@qq.com', dept=null}, 
+  		Emp{eid=4, empName= '赵六'，age=34, sex='女' ，email='123@qq.com', dept=null}
+  	]
+  }
+  ~~~
+
+> 同时也可以使用延时加载。
+
+# 八. 动态SQL
+
+> Mybatis框架的动态SQL技术是一种根据特定条件动态拼装SQL语句的功能，它存在的意义是为了解决拼接SQL语句字符串时的痛点问题。往往用在多条件查询。如：条件筛选。
+
+## 1. if
+
+> if标签可通过test属性的表达式进行判断，若表达式的结果为true，则标签中的内容会执行。反之标签中的内容不会执行。
+
+| 参数名 |   描述   |
+| :----: | :------: |
+|  text  | 条件语句 |
+
+- 在mapper包下创建一个DynamicSqlMapper.java接口
+
+  ~~~java
+  public interface DynamicSQLMapper {
+      /**
+       * 多条件查询
+       */
+      List<Emp> getEmpByCondition(Emp emp);
+  }
+  ~~~
+
+- 创建对应的映射文件DynamicSqlMapper.xml
+
+  ~~~xml
+  <!--List<Emp> getEmpByCondition(Emp emp);-->
+  <!--加上1=1使得：即使emp_name为空，也不会导致sql语句变成：where and xxx-->
+  <select id="getEmpByCondition" resultType="Emp">
+      select * from t_emp where 1=1
+      <if test="empName != null and empName != ''">
+          and emp_name = #{empName}
+      </if>
+      <if test="age != null and age != ''">
+          and age = #{age}
+      </if>
+      <if test="email != null and email != ''">
+          and email = #{email}
+      </if>
+      <if test="sex != null and sex != ''">
+          and sex = #{sex}
+      </if>
+  </select>
+  ~~~
+
+  > 上面查询条件`1=1`是为了解决当`empName`属性为空，后面的`and`关键字拼接问题。
+
+- 创建测试类
+
+  ~~~java
+  /**
+       * 动态sql
+       * 1： if： 根据标签中test属性所对应的内容决定标签中的内容是否拼接在sql语句中
+       */
+  @Test
+  public void testGetEmpByCondition(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DynamicSQLMapper mapper = sqlSession.getMapper(DynamicSQLMapper.class);
+      // 各信息都不为null空字符串
+      List<Emp> emp1 = mapper.getEmpByCondition(new Emp(null, "Apple", 22, "女", "123@gmail.com"));
+      // 中间存在查询出来是空，可能导致"select * from t_emp where emp_name= ? and and sex = ?..."的and和and在一起的情况
+      List<Emp> emp2 = mapper.getEmpByCondition(new Emp(null, "Apple", null, null, null));
+      // 第一个查询条件为空字符串，可能导致"select * from t_emp where and age = ? and ..."的where和and在一起的情况
+      List<Emp> emp3 = mapper.getEmpByCondition(new Emp(null, null, null, null, null));     
+      System.out.println(emp1);
+      System.out.println(emp2);
+      System.out.println(emp3);
+  }
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  [Emp{eid=1, empName= '张三',age=23, sex='男', email='123@qq.com', dept=null}]
+  ~~~
+
+  输出语句：
+
+  ~~~sql
+  # emp1
+  select * from t_emp where 1=1 and emp_name=? and age=? and sex=? and email=?
+  
+  # emp2
+  select * from t_emp where 1=1 and emp_name=? 
+  
+  # emp3
+  select * from t_emp where 1=1
+  ~~~
+
+## 2. where
+
+> 语句不加`WHERE`。当`<whele>`标签中`<if>`有一个条件为true时，能自动生成`WHELE`关键字，同时还能取消条件成立时==前面==的`and`或者`or`关键字。
+>
+> 注意：where标签不能将判断语句内容后的`and`或者`or`关键字去掉。
+
+- DynamicSqlMapper.java接口
+
+  ~~~java
+  public interface DynamicSQLMapper {
+      /**
+       * 多条件查询
+       */
+      List<Emp> getEmpByCondition(Emp emp);
+  }
+  ~~~
+
+- DynamicSqlMapper.xml
+
+  ~~~xml
+  <!--    where标签中，如果有内容，则添加关键字，如果没有内容，则把and/or去掉-->
+  <select id="getEmpByCondition" resultType="Emp">
+      select * from t_emp
+      <where>
+          <if test="empName != null and empName != ''">
+              and emp_name = #{empName}
+          </if>
+          <if test="age != null and age != ''">
+              and age = #{age}
+          </if>
+          <if test="email != null and email != ''">
+              and email = #{email}
+          </if>
+          <if test="sex != null and sex != ''">
+              and sex = #{sex}
+          </if>
+      </where>
+  </select>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  /**
+       * 2、where：
+       *      当where标签中有内容时，会自动生成where关键字，并将内容前多余的and或or去掉
+       *      当where标签中没有内容时，此时where标签没有任何效果
+       *      注意：where标签不能将其中内容后面多余的and或or去掉
+       */
+  @Test
+  public void testGetEmpByCondition2(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DynamicSQLMapper mapper = sqlSession.getMapper(DynamicSQLMapper.class);
+      List<Emp> emp1 = mapper.getEmpByCondition(new Emp(null, "Apple", 22, "女", "123@gmail.com"));
+      List<Emp> emp2 = mapper.getEmpByCondition(new Emp(null, "Apple", null,null, null));
+      List<Emp> emp3 = mapper.getEmpByCondition(new Emp(null, null, null, null,null));     
+      System.out.println(emp1);
+      System.out.println(emp2);
+      System.out.println(emp3);
+  }
+  ~~~
+
+  输出语句：
+
+  ~~~sql
+  # emp1
+  select * from t_emp WHERE emp_name=? and age=? and sex=? and email=?
+  
+  # emp2
+  select * from t_emp WHERE emp_name=?
+  
+  # emp3
+  select * from t_emp 
+  ~~~
+
+## 3. trim
+
+> 若标签中有一条判断结果为true时，会合适的去掉标签属性指定的字段，以保证sql语句正确。如果标签中语句都为false，那么或去掉`WHERE`关键字。
+
+trim标签的属性：
+
+| 属性名          |                             描述                             |
+| :-------------- | :----------------------------------------------------------: |
+| prefix          | 将trim标签中内容前面或后面添加指定内容。可以指定指定多个值，多个值之间用`|`分隔 |
+| suffix          | 将trim标签中内容前面或后面添加指定内容。可以指定指定多个值，多个值之间用`|`分隔 |
+| suffixOverrides | 将trim标签中内容前面或后面去掉指定内容。可以指定指定多个值，多个值之间用`|`分隔 |
+| prefixOverrides | 将trim标签中内容前面或后面去掉指定内容。可以指定指定多个值，多个值之间用`|`分隔 |
+
+- DynamicSqlMapper.java接口
+
+  ~~~java
+  public interface DynamicSQLMapper {
+      /**
+       * 多条件查询
+       */
+      List<Emp> getEmpByCondition(Emp emp);
+  }
+  ~~~
+
+- DynamicSqlMapper.xml
+
+  ~~~xml
+  <select id="getEmpByCondition" resultType="Emp">
+      select * from t_emp
+      <trim prefix="where" suffixOverrides="and|or">
+          <if test="empName != null and empName != ''">
+              emp_name = #{empName} and
+          </if>
+          <if test="age != null and age != ''">
+              age = #{age} or
+          </if>
+          <if test="email != null and email != ''">
+              email = #{email} and
+          </if>
+          <if test="sex != null and sex != ''">
+              sex = #{sex}
+          </if>
+      </trim>
+  </select>
+  ~~~
+
+- 测试类
+
+  ~~~java
+  /**
+       * 2、where：
+       *      当where标签中有内容时，会自动生成where关键字，并将内容前多余的and或or去掉
+       *      当where标签中没有内容时，此时where标签没有任何效果
+       *      注意：where标签不能将其中内容后面多余的and或or去掉
+       */
+  @Test
+  public void testGetEmpByCondition2(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DynamicSQLMapper mapper = sqlSession.getMapper(DynamicSQLMapper.class);
+      List<Emp> emp1 = mapper.getEmpByCondition(new Emp(null, "Apple", 22, "女", "123@gmail.com"));
+      List<Emp> emp2 = mapper.getEmpByCondition(new Emp(null, "Apple", null,null, null));
+      List<Emp> emp3 = mapper.getEmpByCondition(new Emp(null, null, null, null,null));     
+      System.out.println(emp1);
+      System.out.println(emp2);
+      System.out.println(emp3);
+  }
+  ~~~
+
+  输出语句：
+
+  ~~~sql
+  # emp1
+  select * from t_emp WHERE emp_name=? and age=? and sex=? and email=?
+  
+  # emp2
+  select * from t_emp WHERE emp_name=?
+  
+  # emp3
+  select * from t_emp 
+  ~~~
+
+## 4. choose-when-otherwise
+
+> 相当于Java中的`Switch-case-default`。特点是，有一个条件成立就不会执行后面的判断。
+>
+> when至少要有一个，otherwise最多只能有一个
+
+- DynamicSqlMapper.java接口
+
+  ~~~java
+  public interface DynamicSQLMapper {
+      /**
+       * 测试choose when otherwise
+       */
+      List<Emp> getEmpByChoose(Emp emp);
+  }
+  ~~~
+
+- DynamicSqlMapper.xml
+
+  ~~~xml
+  <!--List<Emp> getEmpByChoose(Emp emp);-->
+  <select id="getEmpByChoose" resultType="Emp">
+      select * from t_emp
+      <where>
+          <choose>
+              <when test="empName != null and empName != ''">
+                  emp_name = #{empName}
+              </when>
+              <when test="age != null and age != ''">
+                  age = #{age}
+              </when>
+              <when test="sex != null and sex != ''">
+                  sex = #{sex}
+              </when>
+              <when test="email != null and email != ''">
+                  email = #{email}
+              </when>
+              <otherwise>
+                  did = 2
+              </otherwise>
+          </choose>
+      </where>
+  </select>
+  ~~~
+
+  > 如果满足`<when>`中的条件，就加上，但不会执行后面的判断。如果都不满足，则查询`did=1`的员工。
+
+- 测试类
+
+  ~~~java
+  /**
+       * 2、where：
+       *      当where标签中有内容时，会自动生成where关键字，并将内容前多余的and或or去掉
+       *      当where标签中没有内容时，此时where标签没有任何效果
+       *      注意：where标签不能将其中内容后面多余的and或or去掉
+       */
+  @Test
+  public void testGetEmpByCondition2(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DynamicSQLMapper mapper = sqlSession.getMapper(DynamicSQLMapper.class);
+      List<Emp> emp1 = mapper.getEmpByCondition(new Emp(null, "Apple", 22, "女", "123@gmail.com"));
+      List<Emp> emp2 = mapper.getEmpByCondition(new Emp(null, null, 23,null, "123@gmail.com"));
+      List<Emp> emp3 = mapper.getEmpByCondition(new Emp(null, null, null, null,null));     
+      System.out.println(emp1);
+      System.out.println(emp2);
+      System.out.println(emp3);
+  }
+  ~~~
+
+  输出语句：
+
+  ~~~sql
+  # emp1
+  select * from t_emp WHERE emp_name=?
+  
+  # emp2
+  select * from t_emp WHERE age=?
+  
+  # emp3
+  select * from t_emp WHERE did=1
+  ~~~
+
+## 5. foreach
+
+foreach标签内置属性
+
+| 属性名     |                 描述                 |
+| :--------- | :----------------------------------: |
+| collection | 遍历的数组或者集合，即接口传递的参数 |
+| item       |            传递属性变量名            |
+| separator  |         每次遍历以什么做分隔         |
+| open       |       遍历内容以什么作为开始符       |
+| close      |       遍历内容以什么作为结束符       |
+
+### 5.1 实现批量删除
+
+> 通过数组实现批量删除。 
+
+- DynamicSqlMapper.java接口
+
+  ~~~java
+  public interface DynamicSQLMapper {
+      /**
+       * 通过数组实现批量删除
+       */
+      int deleteMoreByArray(@Param("eids") Integer[] eids);
+  }
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  /**
+       * 5、foreach
+       */
+  @Test
+  public void testDeleteMoreByArray(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DynamicSQLMapper mapper = sqlSession.getMapper(DynamicSQLMapper.class);
+      int result = mapper.deleteMoreByArray(new Integer[]{7, 8, 9});
+      System.out.println(result);
+  }
+  ~~~
+
+- DynamicSqlMapper.xml
+
+  - 方法一
+
+    ~~~xml
+    <!--int deleteMoreByArray(Integer[] eids);-->
+    <!--没加@Param时，
+        报错：Parameter 'eids' not found. Available parameters are [array, arg0]
+        因此最好都加上@Param-->
+    <!--int deleteMoreByArray(@Param("eids") Integer[] eids);-->
+    <delete id="deleteMoreByArray">
+        delete from t_emp where eid in
+        <foreach collection="eids" item="eid" separator="," open="(" close=")">
+            #{eid}
+        </foreach>
+    </delete>
+    ~~~
+
+    输出语句
+
+    ~~~sql
+    delete from t_emp where eid in(7,8,9)
+    ~~~
+
+    > 此时就会在数据库删除`eid`字段为7，8，9的员工。
+
+  - 方法二：
+
+    ~~~xml
+    <!--int deleteMoreByArray(Integer[] eids);-->
+    <delete id="deleteMoreByArray">
+        <!--方法2：-->
+        delete from t_emp where
+        <foreach collection="eids"  item="eid" separator="or">
+            eid = #{eid}
+        </foreach>
+    </delete>
+    ~~~
+
+    输出语句：
+
+    ~~~sql
+    from t_ emp where eid=7 or eid=8 or eid=9
+    ~~~
+
+### 5.2 实现批量添加
+
+> 通过list集合实现批量添加
+
+- DynamicSqlMapper.java接口
+
+  ~~~java
+  public interface DynamicSQLMapper {
+      /**
+       * 通过list集合实现批量添加
+       */
+      int insertMoreByList(@Param("emps") List<Emp> emps);
+  }
+  ~~~
+
+- DynamicSqlMapper.xml
+
+  ~~~xml
+  <!--int insertMoreByList(List<Emp> emps);-->
+  <!--不加注解会报错：Parameter 'emps' not found. Available parameters are [arg0, collection, list]-->
+  <!--int insertMoreByList(@Param("emps") List<Emp> emps);-->
+  <insert id="insertMoreByList">
+      insert into t_emp values
+      <foreach collection="emps" item="emp" separator=",">
+          (null, #{emp.empName}, #{emp.age}, #{emp.sex}, #{emp.email}, null)
+      </foreach>
+  </insert>
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  /**
+       * 5、foreach
+       *      collection  需要循环的数组或集合
+       *      item        表示数组或集合中的每一个数据
+       *      separator   循环体之间的分隔符
+       *      open        foreach标签所循环的所有内容的开始符
+       *      close       foreach标签所循环的所有内容的结束符
+       */
+  @Test
+  public void testInsertMoreByList(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      DynamicSQLMapper mapper = sqlSession.getMapper(DynamicSQLMapper.class);
+      Emp emp1 = new Emp(null, "Mary", 23, "女", "11111@qq.com");
+      Emp emp2 = new Emp(null, "Linda", 23, "女", "1144111@qq.com");
+      Emp emp3 = new Emp(null, "Jackoline", 23, "女", "1122111@qq.com");
+      List<Emp> emps = Arrays.asList(emp1, emp2, emp3);
+      System.out.println(mapper.insertMoreByList(emps));
+  }
+  ~~~
+
+  执行语句：
+
+  ~~~sql
+  insert into t_emp values (null,?,?,?,?,null),(null,?,?,?,?null),(null,?,?,?,?null)
+  ~~~
+
+## 6. SQL片段
+
+> SQL片段可以将我们开发时较为常用的字段保存起来，方便引用。
+
+- DynamicSqlMapper.xml
+
+  ~~~xml
+  <!--设置SQL片段-->
+  <sql id="empColumns">eid,emp_name,age,sex,email</sq1>
+  <select id=" getEmpByCondition" resultType=" Emp">
+      <!--引用SQL片段-->
+      select <include refid="empColumns"></include> from t_emp
+  </select>
+  ~~~
+
+  输出语句
+
+  ~~~sql
+   select eid,emp_name,age,sex,email from t_emp
+  ~~~
+
+# 九. MyBatis缓存
+
+> 缓存就是将查询的数据记录下来，下次再次查询数据时，就不用访问数据库。能提高查询速度。只针对查询功能有效。
+
+## 1. MyBatis的一级缓存与失效
+
+> 一级缓存是SqlSession级别的，通过同一个SqlSession查询的数据会被缓存，下次查询相同的数据，就会从缓存中直接获取，不会从数据库重新访问。一级缓存默认开启。
+>
+> 使一级缓存失效的四种情况:
+>
+> 1. 不同的SqlSession对应不同的一级缓存
+> 2. 同一个SqlSession但是查询条件不同
+> 3. 同一个SqlSession两次查询期间执行了任何一次增删改操作
+> 4. 同一个SqlSession两次查询期间手动清空了缓存
+
+- 不同的SqlSession对应不同的一级缓存，在测试类中添加查询方法
+
+  > 只要不重新获取sqlSession，缓存就存在
+
+  ~~~java
+  @Test
+  public void testCache(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      CacheMapper mapper = sqlSession.getMapper(CacheMapper.class);
+      Emp emp1 = mapper.getEmpById(3);
+      System.out.println(emp1);
+      System.out.println("========第二次调用========从缓存中取数据");
+      Emp emp2 = mapper.getEmpById(3);
+      System.out.println(emp2);
+  
+      System.out.println("\n========即使用的不是同一个Mapper，也同样从缓存中取(同一个sqlsession)========");
+      CacheMapper mapper2 = sqlSession.getMapper(CacheMapper.class);
+      Emp empByMapper2 = mapper2.getEmpById(3);
+      System.out.println(empByMapper2);
+  
+      System.out.println("\n========一级缓存的范围在sqlsession中，换一个新的sqlsession就会再次用sql读取数据========");
+      SqlSession sqlSession2 = SqlSessionUtils.getSqlSession();
+      CacheMapper mapper2BySqlSession2 = sqlSession2.getMapper(CacheMapper.class);
+      System.out.println(mapper2BySqlSession2.getEmpById(3));
+  }
+  ~~~
+
+  运行结果：
+  [SqlSession对应不同的一级缓存：](https://s1.ax1x.com/2022/07/27/vpkk8A.png)
+                           [<img src="https://s1.ax1x.com/2022/07/27/vpkk8A.png" alt="vpkk8A.png" style="zoom: 33%;" />](https://imgtu.com/i/vpkk8A)
+
+- 同一个SqlSession但是查询条件不同
+
+  > 查询两个不同id，与数据库建立两次链接。所以一级缓存失效。
+
+  ~~~java
+  @Test
+  public void testCache3(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      CacheMapper mapper = sqlSession.getMapper(CacheMapper.class);
+  
+      System.out.println("=====第一次获取数据=====");
+      Emp emp1 = mapper.getEmpById(3);
+      System.out.println(emp1);
+  
+      System.out.println("\n=====查询条件不同=====");
+      Emp emp2 = mapper.getEmpById(5);
+      System.out.println(emp2);
+  }
+  ~~~
+
+  运行结果：
+  [同一个SqlSession但是查询条件不同：](https://s1.ax1x.com/2022/07/27/vpk18s.png)
+                          [<img src="https://s1.ax1x.com/2022/07/27/vpk18s.png" alt="vpk18s.png" style="zoom:33%;" />](https://imgtu.com/i/vpk18s)
+
+- 同一个SqlSession两次查询期间执行了任何一次增删改操作
+
+  > 下面的代码可以看出当我们在同一个SqlSession情况下执行力增删改操作。缓存就会失败。
+
+  ~~~java
+  @Test
+  public void testCache2(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      CacheMapper mapper = sqlSession.getMapper(CacheMapper.class);
+  
+      System.out.println("=====第一次获取数据=====");
+      Emp emp1 = mapper.getEmpById(3);
+      System.out.println(emp1);
+      Emp emp2 = mapper.getEmpById(3);
+      System.out.println(emp2);
+  
+      System.out.println("\n=====进行增删改操作=====");
+      mapper.insetEmp(new Emp(null, "Joey", 44, "男", "8888@gmai.com"));
+  
+      System.out.println("\n=====同一个sqlsession，再获取数据=====");
+      Emp emp3 = mapper.getEmpById(3);
+      System.out.println(emp3);
+  }
+  ~~~
+
+  运行结果：
+  [两次查询期间执行了任何一次增删改操作：](https://s1.ax1x.com/2022/07/27/vpk0PJ.png)
+                         [<img src="https://s1.ax1x.com/2022/07/27/vpk0PJ.png" alt="vpk0PJ.png" style="zoom: 33%;" />](https://imgtu.com/i/vpk0PJ)
+
+- 同一个SqlSession两次查询期间手动清空了（一级）缓存
+
+  > 可以通过` sqlSession.clearCache();`方法手动清空sqlSession。之后再次查询缓存就会失效。
+
+  ~~~java
+  @Test
+  public void testCache4(){
+      SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      CacheMapper mapper = sqlSession.getMapper(CacheMapper.class);
+  
+      System.out.println("=====第一次获取数据=====");
+      Emp emp1 = mapper.getEmpById(3);
+      System.out.println(emp1);
+  
+      System.out.println("\n=====两次查询期间手动清空缓存=====");
+      sqlSession.clearCache();
+  
+      System.out.println("\n=====再次查询id=3的emp=====");
+      Emp emp2 = mapper.getEmpById(3);
+      System.out.println(emp2);
+  }
+  ~~~
+
+  运行结果：
+  [手动清空了一级缓存再查询：](https://s1.ax1x.com/2022/07/27/vpEFXt.png)
+
+  ​                    [<img src="https://s1.ax1x.com/2022/07/27/vpEFXt.png" alt="vpEFXt.png" style="zoom:33%;" />](https://imgtu.com/i/vpEFXt)
+
