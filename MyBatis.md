@@ -3013,3 +3013,844 @@ foreach标签内置属性
 
   ​                    [<img src="https://s1.ax1x.com/2022/07/27/vpEFXt.png" alt="vpEFXt.png" style="zoom:33%;" />](https://imgtu.com/i/vpEFXt)
 
+## 2. MyBatis的二级缓存
+
+> 二级缓存是SqlSessionFactory级别，通过同一个SqlSessionFactory创建的SqlSession查询的结果会被缓存；此后若再次执行相同的查询语句，结果就会从缓存中获取。
+>
+> 二级缓存开启的条件：
+>
+> 1. 在核心配置文件中，设置全局配置属性`cacheEnabled=“true"`，默认为true，不需要设置
+> 2. 在映射文件中设置标签`<cache />`
+> 3. 二级缓存必须在SqlSession关闭或提交之后有效
+> 4. 查询的数据所转换的实体类类型必须实现序列化的接口
+>
+> 使二级缓存失效的情况：**两次查询之间执行了任意的增删改**，会使一级和二级缓存同时失效。没有提交sqlsession时，数据会保存在一级缓存中，提交后，会保存在二级缓存中。
+
+- 在接口对应映射文件CacheMapper.xml中开启缓存
+
+  ~~~xml
+  <cache />
+  ~~~
+
+  [开启二级缓存：](https://s1.ax1x.com/2022/07/28/v9Qqf0.png)
+                                  [<img src="https://s1.ax1x.com/2022/07/28/v9Qqf0.png" alt="v9Qqf0.png" style="zoom:50%;" />](https://imgtu.com/i/v9Qqf0)
+
+- 在接口对应的实体类Emp.java中实现序列化接口
+
+  > 实体类中实现`Serializable`接口。
+
+  ~~~java
+  public class Emp implements Serializable{
+   ...   
+  }
+  ~~~
+
+- 编写测试类
+
+  ~~~java
+  @Test
+  public void testCacheTwo(){
+      // 这里不能用工具类了，因为每次都会创建新的sqlsessionfactory
+      // SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      // CacheMapper mapper = sqlSession.getMapper(CacheMapper.class);
+      //只要是同一个sqlsessionfactory获得的sqlsession就可以
+      try {
+          InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+          SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(is);
+          SqlSession sqlSession1 = sqlSessionFactory.openSession(true);
+          CacheMapper mapper1 = sqlSession1.getMapper(CacheMapper.class);
+          System.out.println(mapper1.getEmpById(1));
+  
+          System.out.println("Cache Hit Ratio：缓存命中率，指的是在缓存中有没有这条数据");
+          System.out.println("=====二级缓存未打开，没从缓存中获取数据=====");
+          SqlSession sqlSession2 = sqlSessionFactory.openSession(true);
+          CacheMapper mapper2 = sqlSession2.getMapper(CacheMapper.class);
+          System.out.println(mapper2.getEmpById(1));
+      } catch (IOException e) {
+          e.printStackTrace();
+      }
+  }
+  ~~~
+
+  > 上面的代码执行后，控制台缓存命中率为0(没有二级缓存)。这是因为，我们在每个工厂SqlSessionFactory创建对象sqlSession查询数据后没有手动关闭sqlsession对象。所以二级缓存失效。
+
+  [二级缓存为打开：](https://s1.ax1x.com/2022/07/28/v9YgHO.png)
+                     [<img src="https://s1.ax1x.com/2022/07/28/v9YgHO.png" alt="v9YgHO.png" style="zoom: 33%;" />](https://imgtu.com/i/v9YgHO)
+
+- 手动关闭sqlsession使二级缓存生效
+
+  ~~~java
+  @Test
+  public void testCacheTwo(){
+      // 这里不能用工具类了，因为每次都会创建新的sqlsessionfactory
+      // SqlSession sqlSession = SqlSessionUtils.getSqlSession();
+      // CacheMapper mapper = sqlSession.getMapper(CacheMapper.class);
+      //只要是同一个sqlsessionfactory获得的sqlsession就可以
+      try {
+          InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+          SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(is);
+          SqlSession sqlSession1 = sqlSessionFactory.openSession(true);
+          CacheMapper mapper1 = sqlSession1.getMapper(CacheMapper.class);
+          System.out.println(mapper1.getEmpById(1));
+          JYOLCIITUULOPI -ITL CIISIaPpCI- .gC LCpuy-ulCide一
+  		System.out.printLn("\n=====关闭sqLSession1=====") ;
+          //把sqlSession1关闭，数据保存到二级缓存
+  		sqlSession1.cLose();		
+  
+  
+          System.out.println("Cache Hit Ratio：缓存命中率，指的是在缓存中有没有这条数据");
+          System.out.println("=====二级缓存未打开，没从缓存中获取数据=====");
+          SqlSession sqlSession2 = sqlSessionFactory.openSession(true);
+          CacheMapper mapper2 = sqlSession2.getMapper(CacheMapper.class);
+          System.out.println(mapper2.getEmpById(1));
+          sqlSession2.cLose();
+      } catch (IOException e) {
+          e.printStackTrace();
+      }
+  }
+  ~~~
+
+  [开启二级缓存后的运行结果：](https://s1.ax1x.com/2022/07/28/v9Btk6.png)
+                            [<img src="https://s1.ax1x.com/2022/07/28/v9Btk6.png" alt="v9Btk6.png" style="zoom: 33%;" />](https://imgtu.com/i/v9Btk6)
+
+## 3. 二级缓存的相关配置
+
+> 上面的`<cache />`可以配置一些属性：
+>
+> 1. eviction属性:缓存回收策略
+>    - LRU(Least Recently Used) – 最近最少使用的：移除最长时间不被使用的对象。
+>    - FIFO(First in First out) – 先进先出：按对象进入缓存的顺序来移除它们。
+>    - SOFT – 软引用:移除基于垃圾回收器状态和软引用规则的对象。
+>    - WEAK –弱引用:更积极地移除基于垃圾收集器状态和弱引用规则的对象。
+>    - 默认的是 LRU。
+> 2. flushInterval属性：刷新间隔，单位毫秒
+>    - 默认情况是不设置，也就是没有刷新间隔，缓存仅仅调用语句（增删改） 时刷新
+> 3. size属性：引用数目，正整数
+>    - 代表缓存最多可以存储多少个对象，设置太大容易导致内存溢出
+> 4. readOnly属性：只读，true/false
+>    - true:只读缓存; 会给所有调用者返回缓存对象的相同实例。因此这些对象不能被修改。这提供了很重要的性能优势。【性能好】
+>    - false:读写缓存; 会返回缓存对象的拷贝(通过序列化)。这会慢一些，但是安全，因此默认是 false。【安全】
+
+## 4. MyBatis缓存查询的顺序
+
+> 1. 先查询二级缓存，因为二级缓存中可能会有其他程序已经查出来的数据，可以拿来直接使用。
+> 2. 如果二级缓存没有命中，再查询一级缓存
+> 3. 如果一级缓存也没有命中，则查询数据库
+> 4. SqlSession**关闭之后，一级缓存中的数据会写入二级缓存**。
+
+## 5. 整合第三方缓存EHCache
+
+> 该第三方库只能代替二级缓存
+
+- 在`pom.xml`中添加依赖
+
+  ~~~xml
+  <!-- Mybatis EHCache整合包 --> 
+  <dependency>
+      <groupId>org.mybatis.caches</groupId>
+      <artifactId>mybatis-ehcache</artifactId>
+      <version>1.2.1</version>
+  </dependency>
+  
+  <!-- slf4j日志门面的一个具体实现类 --> 
+  <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.3</version>
+  </dependency>
+  ~~~
+
+  [各种jar包的功能：](https://s1.ax1x.com/2022/07/28/v9T6fg.png)
+
+  ​                               [<img src="https://s1.ax1x.com/2022/07/28/v9T6fg.png" alt="v9T6fg.png" style="zoom:50%;" />](https://imgtu.com/i/v9T6fg)
+
+- 创建EHCache的配置文件ehcache.xml(名字必须为ehcache.xml)
+
+  ~~~xml
+  <?xml version="1.0" encoding="utf-8" ?>
+  <ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="../config/ehcache.xsd">
+  <!-- 磁盘保存路径 -->
+  <diskStore path="这里改成你需要保存缓存的磁盘路径"/>
+      <defaultCache
+              maxElementsInMemory="1000"
+              maxElementsOnDisk="10000000"
+              eternal="false"
+              overflowToDisk="true"
+              timeToIdleSeconds="120"
+              timeToLiveSeconds="120"
+              diskExpiryThreadIntervalSeconds="120"
+              memoryStoreEvictionPolicy="LRU">
+      </defaultCache>
+  </ehcache>
+  ~~~
+
+  > `"../config/ehcache.xsd"`报错，则创建这个文件。
+
+  [配置文件说明：](https://s1.ax1x.com/2022/07/28/v97ruR.png)
+
+  ​                                 [<img src="https://s1.ax1x.com/2022/07/28/v97ruR.png" alt="v97ruR.png" style="zoom: 50%;" />](https://imgtu.com/i/v97ruR)
+
+- 在接口映射文件中设置二级缓存类型
+
+  ~~~xml
+  <cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+  ~~~
+
+- 加入logback日志
+
+  > 存在SLF4J时，作为简易日志的log4j将失效，此时我们需要借助SLF4J的具体实现logback来打印日志。
+
+  创建logback的配置文件logback.xml
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <configuration debug="true"> <!-- 指定日志输出的位置 -->
+      <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+          <encoder>
+              <!-- 日志输出的格式 -->
+              <!-- 按照顺序分别是:时间、日志级别、线程名称、打印日志的类、日志主体内容、换行 -->
+              <pattern>[%d{HH:mm:ss.SSS}] [%-5level] [%thread] [%logger] [%msg]%n</pattern>
+          </encoder>
+      </appender>
+      <!-- 设置全局日志级别。日志级别按顺序分别是:DEBUG、INFO、WARN、ERROR -->
+      <!-- 指定任何一个日志级别都只打印当前级别和后面级别的日志。 -->
+      <root level="DEBUG">
+          <!-- 指定打印日志的appender，这里通过“STDOUT”引用了前面配置的appender -->
+          <appender-ref ref="STDOUT" />
+      </root>
+      <!-- 根据特殊需求指定局部日志级别 -->
+      <logger name="com.atguigu.mybatis.mapper" level="DEBUG"/>
+  </configuration>
+  ~~~
+
+  > 此时再次运行之前编写的测试文件，会发现缓存保存在了磁盘上。
+
+  [数据保存至磁盘：](https://s1.ax1x.com/2022/07/28/v97vvj.png)
+                                  [<img src="https://s1.ax1x.com/2022/07/28/v97vvj.png" alt="v97vvj.png" style="zoom: 67%;" />](https://imgtu.com/i/v97vvj)
+
+# ==十. MyBatis的逆向工程(MBG)==
+
+> 正向工程与你想工程概念：
+>
+> 1. 正向工程：先创建Java实体类，由框架负责根据实体类生成数据库表。Hibernate是支持正向工程的。
+> 2. 逆向工程：先创建数据库表,由框架负责根据数据库表,反向生成如下资源：
+>    - Java实体类
+>    - Mapper接口
+>    - Mapper映射文件
+>
+> MyBatis逆向工程指的是根据一张sql表单，借助Maven和MBG直接创建pojo、mapper接口（xxxMapper）、映射文件（xxxMapper.xml）。就不需要我们自己一个一个创建文件去配置。
+
+## 1. 创建逆向工程MyBatis3Simple(简洁版)的步骤
+
+### 1.1 创建MyBatis核心配置文件
+
+- 创建`t_dept`和`t_emp`表单
+  [t_dept表：](https://s1.ax1x.com/2022/07/28/v9q9hT.png)
+                        [<img src="https://s1.ax1x.com/2022/07/28/v9q9hT.png" alt="v9q9hT.png" style="zoom:50%;" />](https://imgtu.com/i/v9q9hT)
+
+  [t_emp表：](https://s1.ax1x.com/2022/07/28/v9qlge.png)
+                   [<img src="https://s1.ax1x.com/2022/07/28/v9qlge.png" alt="v9qlge.png" style="zoom:50%;" />](https://imgtu.com/i/v9qlge)
+
+- 添加依赖和插件：在pom.xml中添加依赖和插件，更新maven
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <project xmlns="http://maven.apache.org/POM/4.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+      <modelVersion>4.0.0</modelVersion>
+  
+      <groupId>org.example</groupId>
+      <artifactId>MyBatis_MBG</artifactId>
+      <version>1.0-SNAPSHOT</version>
+  
+      <properties>
+          <maven.compiler.source>8</maven.compiler.source>
+          <maven.compiler.target>8</maven.compiler.target>
+      </properties>
+  
+      <!-- 依赖MyBatis核心包 -->
+      <dependencies>
+          <dependency>
+              <groupId>org.mybatis</groupId>
+              <artifactId>mybatis</artifactId>
+              <version>3.5.7</version>
+          </dependency>
+          <!-- junit测试 -->
+          <dependency>
+              <groupId>junit</groupId>
+              <artifactId>junit</artifactId>
+              <version>4.12</version>
+              <scope>test</scope>
+          </dependency>
+          <!-- MySQL驱动 -->
+          <dependency>
+              <groupId>mysql</groupId>
+              <artifactId>mysql-connector-java</artifactId>
+              <version>5.1.3</version>
+          </dependency>
+          <!-- log4j日志 -->
+          <dependency>
+              <groupId>log4j</groupId>
+              <artifactId>log4j</artifactId>
+              <version>1.2.17</version>
+          </dependency>
+          <dependency>
+              <groupId>org.junit.jupiter</groupId>
+              <artifactId>junit-jupiter</artifactId>
+              <version>RELEASE</version>
+              <scope>test</scope>
+          </dependency>
+  
+      </dependencies>
+      <!-- 控制Maven在构建过程中相关配置 -->
+      <build>
+          <!-- 构建过程中用到的插件 -->
+          <plugins>
+              <!-- 具体插件，逆向工程的操作是以构建过程中插件形式出现的 -->
+              <plugin>
+                  <groupId>org.mybatis.generator</groupId>
+                  <artifactId>mybatis-generator-maven-plugin</artifactId>
+                  <version>1.3.0</version>
+                  <!-- 插件的依赖 -->
+                  <dependencies>
+                      <!-- 逆向工程的核心依赖 -->
+                      <dependency>
+                          <groupId>org.mybatis.generator</groupId>
+                          <artifactId>mybatis-generator-core</artifactId>
+                          <version>1.3.2</version>
+                      </dependency>
+                      <!-- 数据库连接池 -->
+                      <dependency>
+                          <groupId>com.mchange</groupId>
+                          <artifactId>c3p0</artifactId>
+                          <version>0.9.2</version>
+                      </dependency>
+                      <!-- MySQL驱动 -->
+                      <dependency>
+                          <groupId>mysql</groupId>
+                          <artifactId>mysql-connector-java</artifactId>
+                          <version>5.1.8</version>
+                      </dependency>
+                  </dependencies>
+              </plugin>
+          </plugins>
+      </build>
+  </project>
+  ~~~
+
+- 创建MyBatis的核心配置文件
+
+  > 在src/main/resources下创建mybatis-config.xml
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <!DOCTYPE configuration
+          PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+          "http://mybatis.org/dtd/mybatis-3-config.dtd">
+  <configuration>
+  
+      <properties resource="jdbc.properties"></properties>
+  
+      <!--设置连接数据库的环境-->
+      <environments default="development">
+          <environment id="development">
+              <transactionManager type="JDBC"/>
+              <dataSource type="POOLED">
+                  <property name="driver" value="${jdbc.driver}"/>
+                  <property name="url"
+                            value="${jdbc.url}"/>
+                  <property name="username" value="${jdbc.username}"/>
+                  <property name="password" value="${jdbc.password}"/>
+              </dataSource>
+          </environment>
+      </environments>
+  
+  </configuration>
+  ~~~
+
+- 创建jdbc.properties文件
+
+  ~~~properties
+  jdbc.driver=com.mysql.jdbc.Driver
+  jdbc.url=jdbc:mysql://localhost:3306/mybatis?characterEncoding=utf8
+  jdbc.username=root
+  jdbc.password=写你的数据库密码
+  ~~~
+
+- 创建log4j.xml日志配置文件
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+  <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/"
+                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       xsi:schemaLocation="http://jakarta.apache.org/log4j/ ">
+      <appender name="STDOUT" class="org.apache.log4j.ConsoleAppender">
+          <param name="Encoding" value="UTF-8"/>
+          <layout class="org.apache.log4j.PatternLayout">
+              <param name="ConversionPattern" value="%-5p %d{MM-dd HH:mm:ss,SSS}
+                                                     %m  (%F:%L) \n"/>
+          </layout>
+      </appender>
+      <logger name="java.sql">
+          <level value="debug"/>
+      </logger>
+      <logger name="org.apache.ibatis">
+          <level value="info"/>
+      </logger>
+      <root>
+          <level value="debug"/>
+          <appender-ref ref="STDOUT"/>
+      </root>
+  </log4j:configuration>
+  ~~~
+
+### 1.2 创建逆向工程的配置文件
+
+> 注意：文件名必须是：generatorConfig.xml。mac环境下，\要修改为/，windows才是targetProject="./src/main/java
+
+generatorConfig.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<generatorConfiguration>
+
+    <!--
+    	targetRuntime: 执行生成的逆向工程的版本
+        MyBatis3Simple: 生成基本的CRUD(清新简洁版)
+        MyBatis3: 生成带条件的CRUD(奢华尊享版)
+    -->
+    <context id="DB2Tables" targetRuntime="MyBatis3Simple"> <!-- 数据库的连接信息 -->
+        <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+                        connectionURL="jdbc:mysql://localhost:3306/mybatis"
+                        userId="root"
+                        password="123456">
+        </jdbcConnection>
+        <!--javaBean的生成策略-->
+        <javaModelGenerator targetPackage="com.atguigu.mybatis.pojo"
+                            targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true"/>
+            <property name="trimStrings" value="true"/>
+        </javaModelGenerator>
+        <!-- SQL映射文件的生成策略 -->
+        <sqlMapGenerator targetPackage="com.atguigu.mybatis.mapper"
+                         targetProject=".\src\main\resources">
+            <property name="enableSubPackages" value="true"/>
+        </sqlMapGenerator>
+        <!-- Mapper接口的生成策略 -->
+        <javaClientGenerator type="XMLMAPPER"
+                             targetPackage="com.atguigu.mybatis.mapper" targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true"/>
+        </javaClientGenerator>
+        <!-- 逆向分析的表 -->
+        <!-- tableName设置为*号，可以对应所有表，此时不写domainObjectName --> 
+        <!-- domainObjectName属性指定生成出来的实体类的类名 -->
+        <table tableName="t_emp" domainObjectName="Emp"/>
+        <table tableName="t_dept" domainObjectName="Dept"/>
+    </context>
+</generatorConfiguration>
+~~~
+
+### 1.3 执行MBG插件的generate目标
+
+- 执行generate目标
+  [生成文件：](https://s1.ax1x.com/2022/07/28/v9jpqJ.png)
+                             [<img src="https://s1.ax1x.com/2022/07/28/v9jpqJ.png" alt="v9jpqJ.png" style="zoom: 33%;" />](https://imgtu.com/i/v9jpqJ)   
+
+  [操作前的文件目录：](https://s1.ax1x.com/2022/07/28/v9jeMD.png)
+                                [<img src="https://s1.ax1x.com/2022/07/28/v9jeMD.png" alt="v9jeMD.png" style="zoom: 67%;" />](https://imgtu.com/i/v9jeMD)
+
+  [操作后的文件目录：](https://s1.ax1x.com/2022/07/28/v9jGz8.png)
+                                      [<img src="https://s1.ax1x.com/2022/07/28/v9jGz8.png" alt="v9jGz8.png" style="zoom:50%;" />](https://imgtu.com/i/v9jGz8)
+
+- Mapper接口中自动生成基础增删改查功能
+
+  ~~~java
+  public interface EmpMapper {
+      int deleteByPrimaryKey(Integer eid);
+  
+      int insert(Emp record);
+  
+      Emp selectByPrimaryKey(Integer eid);
+  
+      List<Emp> selectAll();
+  
+      int updateByPrimaryKey(Emp record);
+  }
+  ~~~
+
+- Mapper映射文件中自动生成相对应方法的配置信息
+
+  ~~~xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+  <mapper namespace="com.atguigu.mybatis.mapper.EmpMapper" >
+      <resultMap id="BaseResultMap" type="com.atguigu.mybatis.pojo.Emp" >
+          <!--
+        WARNING - @mbggenerated
+        This element is automatically generated by MyBatis Generator, do not modify.
+        This element was generated on Wed Mar 02 16:05:18 CST 2022.
+      -->
+          <id column="eid" property="eid" jdbcType="INTEGER" />
+          <result column="emp_name" property="empName" jdbcType="VARCHAR" />
+          <result column="age" property="age" jdbcType="INTEGER" />
+          <result column="sex" property="sex" jdbcType="CHAR" />
+          <result column="email" property="email" jdbcType="VARCHAR" />
+          <result column="did" property="did" jdbcType="INTEGER" />
+      </resultMap>
+      <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+          <!--
+        WARNING - @mbggenerated
+        This element is automatically generated by MyBatis Generator, do not modify.
+        This element was generated on Wed Mar 02 16:05:18 CST 2022.
+      -->
+          delete from t_emp
+          where eid = #{eid,jdbcType=INTEGER}
+      </delete>
+      <insert id="insert" parameterType="com.atguigu.mybatis.pojo.Emp" >
+          <!--
+        WARNING - @mbggenerated
+        This element is automatically generated by MyBatis Generator, do not modify.
+        This element was generated on Wed Mar 02 16:05:18 CST 2022.
+      -->
+          insert into t_emp (eid, emp_name, age, 
+          sex, email, did)
+          values (#{eid,jdbcType=INTEGER}, #{empName,jdbcType=VARCHAR}, #{age,jdbcType=INTEGER}, 
+          #{sex,jdbcType=CHAR}, #{email,jdbcType=VARCHAR}, #{did,jdbcType=INTEGER})
+      </insert>
+      <update id="updateByPrimaryKey" parameterType="com.atguigu.mybatis.pojo.Emp" >
+          <!--
+        WARNING - @mbggenerated
+        This element is automatically generated by MyBatis Generator, do not modify.
+        This element was generated on Wed Mar 02 16:05:18 CST 2022.
+      -->
+          update t_emp
+          set emp_name = #{empName,jdbcType=VARCHAR},
+          age = #{age,jdbcType=INTEGER},
+          sex = #{sex,jdbcType=CHAR},
+          email = #{email,jdbcType=VARCHAR},
+          did = #{did,jdbcType=INTEGER}
+          where eid = #{eid,jdbcType=INTEGER}
+      </update>
+      <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+          <!--
+        WARNING - @mbggenerated
+        This element is automatically generated by MyBatis Generator, do not modify.
+        This element was generated on Wed Mar 02 16:05:18 CST 2022.
+      -->
+          select eid, emp_name, age, sex, email, did
+          from t_emp
+          where eid = #{eid,jdbcType=INTEGER}
+      </select>
+      <select id="selectAll" resultMap="BaseResultMap" >
+          <!--
+        WARNING - @mbggenerated
+        This element is automatically generated by MyBatis Generator, do not modify.
+        This element was generated on Wed Mar 02 16:05:18 CST 2022.
+      -->
+          select eid, emp_name, age, sex, email, did
+          from t_emp
+      </select>
+  </mapper>
+  ~~~
+
+## 2. 创建逆向工程MyBatis3(多功能)版本
+
+- 更改版本generatorConfig.xml
+  [修改配置文件版本：](https://s1.ax1x.com/2022/07/28/v9vFmQ.png)
+                              [<img src="https://s1.ax1x.com/2022/07/28/v9vFmQ.png" alt="v9vFmQ.png" style="zoom:50%;" />](https://imgtu.com/i/v9vFmQ)
+
+- 自动生成的Mapper接口中的方法
+
+  ~~~java
+  public interface EmpMapper {
+      // 根据条件计数
+      int countByExample(EmpExample example);
+  
+      //根据条件删除
+      int deleteByExample(EmpExample example);
+      //根据主键删除
+      int deleteByPrimaryKey(Integer eid);
+  
+      //普通插入
+      int insert(Emp record);
+      //选择性插入：没写的就是null
+      int insertSelective(Emp record);
+  
+      //根据条件查询
+      List<Emp> selectByExample(EmpExample example);
+      //根据主键查询
+      Emp selectByPrimaryKey(Integer eid);
+  
+      //根据条件选择性修改：
+      int updateByExampleSelective(@Param("record") Emp record, @Param("example") EmpExample example);
+      //根据条件修改
+      int updateByExample(@Param("record") Emp record, @Param("example") EmpExample example);
+      //根据主键选择性修改
+      int updateByPrimaryKeySelective(Emp record);
+      //根据主键修改
+      int updateByPrimaryKey(Emp record);
+  }
+  ~~~
+
+  > 选择性修改指的是如果某个字段为NULL，则不修改此字段。
+
+### 2.1 测试方法自动查询方法
+
+> 如果报错Cannot find class: com.mysql.jdbc.Driver
+>
+> 解决方法：
+>
+> 1. 检查jdbc.properties中driver最后会不会多写了一个空格
+> 2. 检查引用格式会不会出错，把${jdbc.driver}改成普通的”com.mysql.jdbc.Driver"
+> 3. 最后发现是pom.xml里面配置错了，没加sql依赖。注意看清楚一个是给项目加的，一个是给插件加的，pom.xml里有两个配置sql的地方。
+>
+> 给Emp和Dept 的pojo重写toString()，再加一个空参构造器、一个有参构造器，然后就可以开始测试了。
+
+测试代码汇总：
+
+~~~java
+@Test
+public void test(){
+    try {
+        InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(is);
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        EmpMapper mapper = sqlSession.getMapper(EmpMapper.class);
+
+        //查询所有数据
+        System.out.println("\n--------->查询所有数据");
+        List<Emp> emps = mapper.selectByExample(null); // 没有查询条件就相当于查询所有数据
+        emps.forEach(emp -> System.out.println(emp));
+
+        //根据条件查询 QBC: Query by Criteria
+        EmpExample example = new EmpExample();
+
+        //名字叫Bela的
+        System.out.println("\n--------->根据条件查询");
+        example.createCriteria().andEmpNameEqualTo("Bela");
+        List<Emp> emps1 = mapper.selectByExample(example);
+        emps1.forEach(emp -> System.out.println(emp));
+
+        //链式添加条件
+        System.out.println("\n--------->链式添加条件");
+        example.createCriteria().andEmpNameEqualTo("Bela").andAgeEqualTo(33);
+        List<Emp> emps2 = mapper.selectByExample(example);
+        emps2.forEach(emp -> System.out.println(emp));
+
+        //两个条件用or连接
+        System.out.println("\n--------->两个条件用or连接");
+        example.createCriteria().andAgeLessThan(30);
+        example.or().andDidIsNotNull();
+        List<Emp> emps3 = mapper.selectByExample(example);
+        emps3.forEach(emp -> System.out.println(emp));
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+~~~
+
+- 查询所有数据
+  对应sql语句为：
+
+  ~~~sql
+  seLect eid emp_name,age,sex,email,did from t_emp 
+  ~~~
+
+  运行结果：
+  [查询所有数据：](https://s1.ax1x.com/2022/07/28/v9x02V.png)
+
+  ​                          [<img src="https://s1.ax1x.com/2022/07/28/v9x02V.png" alt="v9x02V.png" style="zoom:50%;" />](https://imgtu.com/i/v9x02V)   
+
+- 根据条件查询
+
+  对应sql语句：
+
+  ~~~sql
+  seLect eid, emp_name,age,sex,email, did from t_emp WHERE (emp_name='Bela')
+  ~~~
+
+  运行结果：
+
+  ~~~shell
+  Emp{eid=2,empName='Bela',age=33,sex='女',email= '123@gmail.com',did=1}
+  ~~~
+
+- 链式添加条件
+  对应sql语句：
+
+  ~~~sql
+  seLect eid, emp_name,age,sex,email, did from t_emp WHERE (emp_name='Bela') AND (age=33)
+  ~~~
+
+  查询结果：
+
+  ~~~shell
+  Emp{eid=2，empName='BeLa',age=33,sex='女',email='123@gmail.com',did=1}
+  ~~~
+
+- 两个条件用or连接
+  对应sql语句
+
+  ~~~sql
+  seLect eid, emp_name,age,sex,email, did from t_emp WHERE (emp_name='Bela') OR did is not null
+  ~~~
+
+  查询结果：
+
+  ~~~shell
+  Emp{eid=1, empName= 'AppLe', age=22， sex='女' , email= '123@gmail.com', did=1}
+  Emp{eid=2，empName='BeLa', age=33, sex='女'， email=' 123@gmail.com', did=1}
+  Emp{eid=3, empName= 'Cherry', age=21, sex='女'， email=' 123@gmail.com' , did=2}
+  Emp{eid=4, empName= 'David', age=55, sex='男'， email='123@gmail. com', did=2}
+  Emp{eid=5，empName='Eve', age=24, sex='男'， email= '123@gmail. com'did=3}
+  Emp{eid=6，empName= 'Feman', age=31, sex='男'， email=' 123@gmail.com', did=3}
+  ~~~
+
+### 2.2 测试修改方法
+
+添加代码汇总：
+
+~~~java
+@Test
+public void test2(){
+    try {
+        InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(is);
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        EmpMapper mapper = sqlSession.getMapper(EmpMapper.class);
+
+        // 根据主键修改
+        mapper.updateByPrimaryKey(new Emp(2,"改1",55,"男","6789@gamil.com",null));
+        System.out.println("\n-----> 根据主键修改----->" + mapper.selectByPrimaryKey(1));
+
+        // 根据主键选择性修改
+        mapper.updateByPrimaryKeySelective(new Emp(2,"改2",55,null,"6789@gamil.com",null));
+        System.out.println("\n-----> 根据主键选择性修改----->" + mapper.selectByPrimaryKey(1));
+
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+~~~
+
+[修改方法运行结果：](https://s1.ax1x.com/2022/07/28/vCCDHS.png)
+                          [<img src="https://s1.ax1x.com/2022/07/28/vCCDHS.png" alt="vCCDHS.png" style="zoom: 33%;" />](https://imgtu.com/i/vCCDHS)
+
+# 十一. 分页插件的使用
+
+> 实现原理：
+>
+> - index：当前页的起始索引
+> - pagesize：每页显示的条数
+> - pageNum：当前页的页码
+> - index= (pageNum 1) *pagesize
+
+[分页插件目的：](https://s1.ax1x.com/2022/07/28/vC9aeU.png)
+
+​                            [<img src="https://s1.ax1x.com/2022/07/28/vC9aeU.png" alt="vC9aeU.png" style="zoom:50%;" />](https://imgtu.com/i/vC9aeU)
+
+## 1. 分页插件的配置
+
+- 在pom.xml中添加依赖
+
+  ~~~xml
+  <!-- https://mvnrepository.com/artifact/com.github.pagehelper/pagehelper -->
+  <dependency>
+      <groupId>com.github.pagehelper</groupId>
+      <artifactId>pagehelper</artifactId>
+      <version>5.2.0</version>
+  </dependency>
+  ~~~
+
+- 在MyBatis的核心配置文件中配置插件
+
+  ~~~xml
+  <plugins>
+      <!--设置分页插件-->
+      <plugin interceptor="com.github.pagehelper.PageInterceptor"></plugin>
+  </plugins>
+  ~~~
+
+## 2. 分页插件的使用
+
+[分页插件的使用：](https://s1.ax1x.com/2022/07/28/vCkrMn.png)
+
+​                    [<img src="https://s1.ax1x.com/2022/07/28/vCkrMn.png" alt="vCkrMn.png" style="zoom:50%;" />](https://imgtu.com/i/vCkrMn)
+
+[分页插件的使用：](https://s1.ax1x.com/2022/07/28/vCk2IU.png)
+
+​                    [<img src="https://s1.ax1x.com/2022/07/28/vCk2IU.png" alt="vCk2IU.png" style="zoom: 50%;" />](https://imgtu.com/i/vCk2IU)
+
+- 在查询功能之前使用PageHelper.startPage(int pageNum, int pageSize)开启分页功能
+
+  |  属性名  |      描述      |
+  | :------: | :------------: |
+  | pageNum  |  当前页的页码  |
+  | pageSize | 每页显示的条数 |
+
+- 在查询获取list集合之后，使用PageInfo pageInfo = new PageInfo<>(List list, int navigatePages)获取分页相关数据
+
+  |    属性名     |                描述                |
+  | :-----------: | :--------------------------------: |
+  |     list      |           分页之后的数据           |
+  | navigatePages | 展示导航分页的总页码数，一般为奇数 |
+
+- 分页相关数据
+
+  |           属性名            |            描述             |
+  | :-------------------------: | :-------------------------: |
+  |           pageNum           |        当前页的页码         |
+  |          pageSize           |       每页显示的条数        |
+  |            size             |    当前页显示的真实条数     |
+  |            total            |          总记录数           |
+  |            pages            |           总页数            |
+  |           prePage           |        上一页的页码         |
+  |          nextPage           |        下一页的页码         |
+  |   isFirstPage/isLastPage    |    是否为第一页/最后一页    |
+  | hasPreviousPage/hasNextPage |    是否存在上一页/下一页    |
+  |        navigatePages        |      导航分页的页码数       |
+  |      navigatepageNums       | 导航分页的页码，[1,2,3,4,5] |
+
+- 测试代码
+
+  ~~~java
+  /**
+       * 通过索引获得数据
+       *
+       * 使用MyBatis的分页插件，实现分页功能：
+       * 1。需要在查询功能之前开启分页
+       * PageHelper.startPage(2, 4);
+       * 
+       * 2。在查询功能之后获取分页相关信息
+       *   PageInfo<Emp> pages = new PageInfo<>(emps, 5); 5表示导航分页的数量
+       */
+  @Test
+  public void test2(){
+      try {
+          InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+          SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(is);
+          SqlSession sqlSession = sqlSessionFactory.openSession();
+          EmpMapper mapper = sqlSession.getMapper(EmpMapper.class);
+  
+          System.out.println("\n查询功能前开启分页");
+          PageHelper.startPage(2, 4);
+          List<Emp> emps = mapper.selectByExample(null);
+          emps.forEach(emp -> System.out.println(emp));
+  
+          System.out.println("\n");
+          PageInfo<Emp> pages = new PageInfo<>(emps, 5);
+          System.out.println("PageInfo----->"+pages);
+      } catch (IOException e) {
+          e.printStackTrace();
+      }
+  }
+  ~~~
+
+  
+
