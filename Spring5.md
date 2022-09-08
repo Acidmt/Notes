@@ -388,7 +388,7 @@ ApplicationContext常用类：
              //System.out.println(orders);
              
              //手动让bean的实例销毁
-             ((ClassPathXmlApplicationContext)context).close();
+             context.close();
      
          }
      }
@@ -492,7 +492,7 @@ ApplicationContext常用类：
              //System.out.println(orders);
              
              //手动让bean的实例销毁
-             ((ClassPathXmlApplicationContext)context).close();
+           	context.close();
      
      
          }
@@ -683,7 +683,7 @@ bean.xml
    在bean.xml中，要想给属性设置特殊符号，可以用转移符号，也可以用CDATA实现
 
    ~~~xml
-   <property name-" address" >
+   <property name-"address" >
        <value><![CDATA[<<南京>>]]></value>
    </property>
    ~~~
@@ -708,7 +708,7 @@ bean.xml
   }
   ~~~
   
-- UserDaoimp.java，是UserDao接口的实现类
+- UserDaoImpl.java，是UserDao接口的实现类
 
   ~~~java
   package com.Keafmd.spring5.dao;
