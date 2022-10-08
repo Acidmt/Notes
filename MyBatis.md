@@ -368,6 +368,8 @@ MyBatis
   根据元素id，例如`<insert id="insertUser">`，找到UserMapper.java类中的UserMapper.insertUser()方法。
 
   > resultType：属性值为实体类的路径。
+  >
+  > 使用parameterType ： 主要针对于 将信息存入到数据库中 如： insert 增加数据到数据库中 Update等paramType是从传过来的Bean中取数据放进例如insert语句的values中当实参用，是取数据用的。
 
 ## 6. 通过junit进行测试
 
@@ -2236,9 +2238,9 @@ association子标签属性：
 > 需要查询一对多、多对一的关系，需要在“一”的pojo中加入List<多>属性，在“多”的pojo中加入“一”。
 > 也就是说，在Dept类中，要加入`private List<Emp> emps;`，在Emp类中，要加入`private Dept dept;`。然后给他们各自添加get、set方法，重写构造器和toString()
 
-### 6.1 通过collection解决一堆过的问题
+### 6.1 通过collection解决一对多的问题
 
-- 现在Dept.java中添加一个集合`private List<Emp> emps`，之后重写toString()方法和get()、set()方法。
+- 先在Dept.java中添加一个集合`private List<Emp> emps`，之后重写toString()方法和get()、set()方法。
 
 - DeptMapper.java接口
 
@@ -2806,6 +2808,8 @@ foreach标签内置属性
     ~~~sql
     from t_ emp where eid=7 or eid=8 or eid=9
     ~~~
+
+==注意：在mybatis中如果传入数组类型的参数。myabtis会把数组转成Map，而这个map的key是array ，value 则是数组里面的值。Map<array,value>。==所以如果不加@Param只能将`collection`值改为`arry`。
 
 ### 5.2 实现批量添加
 
@@ -3851,6 +3855,4 @@ public void test2(){
       }
   }
   ~~~
-
-  
 

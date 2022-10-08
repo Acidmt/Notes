@@ -253,7 +253,7 @@ SpringMVC
   配置web.xml
 
   ~~~xml
-  <!--配置Spr ingMVC的前端控制器，对浏览器发送的请求统一进行处理-->
+  <!--配置SpringMVC的前端控制器，对浏览器发送的请求统一进行处理-->
   <servlet>
       <servlet-name>springMVC </servlet-name>
       <servlet-class>org.springframework.web.serv1et.DispatcherServ1et</servlet-class>
@@ -282,7 +282,7 @@ SpringMVC
   <!--配置SpringMVC的前端控制器，对浏览器发送的请求统一进行处理-->
   <servlet>
       <servlet-name>springMVC </servlet-name>
-      <servlet-class>org.springframework.web.serv1et.DispatcherServ1et</servlet-class>
+      <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
       <!--配置SpringMVC配置文件的位置和名称-->
   	<init-param>
   		<param-name>contextConfigLocation</ param-name>
@@ -804,7 +804,7 @@ SpringMVC
   }
   ~~~
 
-  > 上面的代码第一行获取index.html中`testPath`路径后的值`1`，在第1行使用占位符`{id}`接收，即id=1。再第二行方法参数中使用注解`PathVariable`将获取到的id值赋值给后面的`Integer id`。所以这里的方法有一个默认的参数`id=1`。
+  > 上面的代码第一行获取index.html中`testPath`路径后的值`1`，在第1行使用占位符`{id}`接收，即id=1。在第二行方法参数中使用注解`PathVariable`将获取到的id值赋值给后面的`Integer id`。所以这里的方法有一个默认的参数`id=1`。
   >
   > 注意：这里`/testPath/{id}`表示后面必须跟一个参数，否则会报错404。
 
@@ -849,7 +849,7 @@ SpringMVC
 - 在index.html中创建链接并设置请求参数
 
   ~~~html
-  <a th:href="@{/testPath(username='admin',password=123456)}" >
+  <a th:href="@{/testParam(username='admin',password=123456)}" >
       测试@RequestMapping支持路径中的占位符-->/testPath
   </a><br>
   ~~~
@@ -1061,7 +1061,7 @@ SpringMVC
 > 1. 将cookie数据和控制器方法的形参创建映射关系
 > 2. 注解一共有三个属性：value、required、defaultValue，用法同@RequestParam
 
-- 在HelloController.java类中创建又给session模拟cookie(创建session时会将一个属性名为JSESSIONID的属性存在cookie中)
+- 在HelloController.java类中创建一个session模拟cookie(创建session时会将一个属性名为JSESSIONID的属性存在cookie中)
 
   ~~~java
   @RequestMapping("/testServ1etAPI")
@@ -1085,8 +1085,8 @@ SpringMVC
 - index.html不用动
 
   ~~~html
-  <a th:href="@{/testPath(username='admin',password=123456)}">
-      测试@RequestMapping支持路径中的占位符-->/testPath
+  <a th:href="@{/testParam(username='admin',password=123456)}">
+      测试@RequestMapping支持路径中的占位符-->/testParam
   </a><br>
   ~~~
 
@@ -1120,7 +1120,7 @@ SpringMVC
 - 在HelloController.java类中接收表单提交的参数
 
   ~~~java
-  @RequestMapping("/testBean")
+  @RequestMapping("/testpojo")
   public string testBean(User user,User userInfo){
       System.out.println(user);
       return "success";
@@ -1192,7 +1192,7 @@ SpringMVC
   ~~~html
   <body>
       success<br>
-      <p th:text="${testRequestScope]}"></p>
+      <p th:text="${testRequestScope}"></p>
   </body>
   ~~~
 
@@ -1253,7 +1253,7 @@ SpringMVC
 
   ​                                            [<img src="https://s1.ax1x.com/2022/07/13/jR7bQO.png" alt="jR7bQO.png" style="zoom:50%;" />](https://imgtu.com/i/jR7bQO)
 
-### 1.3 使用Model向request域对象共享数据
+### ==1.3 使用Model向request域对象共享数据(常用)==
 
 - 在index.html中添加链接
 
@@ -1354,9 +1354,10 @@ public class BindingAwareModelMap{}  				//这个类对应的子类，就可以�
 - 在success.html中呈现session中存放的数据
 
   ~~~html
+  <html>
   <body>
       success<br>
-      <p th:text="${session.testSessionScope)}"></p>
+      <p th:text="${session.testSessionScope}"></p>
   </body>
   </html>
   ~~~
@@ -1660,7 +1661,7 @@ RESTful风格：
 
   ~~~html
   <body>
-      <form th: action="@{/user}" method="post">
+      <form th:action="@{/user}" method="post">
           < input type="hidden" name=" method" value="PUT" >
           用户名: <input type= "text" name= "username"><br>
           密码: <input type="password" name= "password"><br>
@@ -1729,7 +1730,7 @@ RESTful风格：
           <url-pattern>/*</url-pattern>
       </filter-mapping>
   
-      <!--配置处理请求方式put和delete的Hi ddenHt tpMethodFilter-->
+      <!--配置处理请求方式put和delete的HiddenHttpMethodFilter-->
       <filter>
           <filter-name>HiddenHttpMethodFilter</ filter-name>
           <filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
@@ -2058,7 +2059,7 @@ RESTful风格：
   }
   ~~~
   
-- 创建emp1oyee_list.html页面展示员工信息查询结果
+- 创建employee_list.html页面展示员工信息查询结果
 
   ~~~html
   <!DOCTYPE html>
@@ -2074,7 +2075,7 @@ RESTful风格：
               </tr>
               <tr>
                   <th>id</th>
-                  <th> lastName</th>
+                  <th>lastName</th>
                   <th>email</th>
                   <th>gender</th>
                   <th>options</th>
@@ -2388,7 +2389,7 @@ RESTful风格：
 
   ~~~java
   @RequestMapping("/testResponse")
-  public void testResponse(Ht tpServletResponse response ) throws IQException {
+  public void testResponse(HttpServletResponse response) throws IQException {
       response. getWriter().print("hello,response");
   }
   ~~~
@@ -2715,7 +2716,7 @@ public ResponseEntity<byte[]> testResponseEntity(HttpSession session) throws IOE
 - 编写拦截器FirstInterceptor.java
 
   ~~~java
-  public class MyHandlerInterceptor implements HandlerInterceptor {
+  public class FirstInterceptor implements HandlerInterceptor {
   
       @Override
       public boolean preHandle(HttpServletRequest request, HttpServletResponse response, 
@@ -2743,16 +2744,22 @@ public ResponseEntity<byte[]> testResponseEntity(HttpSession session) throws IOE
 - 在SpringMVC.xml中配置拦截器
 
   ~~~xml
-  <mvc:interceptor>
-      <bean class="com.atguigu.interceptor.FirstInterceptor"></bean>
-      <ref bean="firstInterceptor"></ref>
-  </mvc:interceptor>
+  <mvc:interceptors>
+      <mvc:interceptor>
+          <bean class="com.atguigu.interceptor.FirstInterceptor"></bean>
+          <ref bean="FirstInterceptor"></ref>
+      </mvc:interceptor>
+  </mvc:interceptors>
+  
+  <mvc:interceptors>
+      <mvc:interceptor>
+          <mvc:mapping path="/**"/>
+          <mvc:exclude-mapping path="/testRequestEntity"/>
+          <ref bean="FirstInterceptor"></ref>
+      </mvc:interceptor>
+  </mvc:interceptors>
   <!-- 以上两种配置方式都是对DispatcherServlet所处理的所有的请求进行拦截 -->
-  <mvc:interceptor>
-      <mvc:mapping path="/**"/>
-      <mvc:exclude-mapping path="/testRequestEntity"/>
-      <ref bean="firstInterceptor"></ref>
-  </mvc:interceptor>
+  
   <!-- 
    以上配置方式可以通过ref或bean标签设置拦截器，通过mvc:mapping设置需要拦截的请求，通过mvc:exclude-mapping设置需要排除的请求，即不需要拦截的请求
   -->
@@ -2761,16 +2768,16 @@ public ResponseEntity<byte[]> testResponseEntity(HttpSession session) throws IOE
   > `<bean>`和`ref`标签会拦截DispatcherServlet所处理的所有的请求。
   >
   > 这里`<mvc:mapping>`标签表示拦截所有请求， `<mvc:exclude-mapping>`表示不拦截服务器请求index页面。
-
+  
   `<mvc:interceptor>`拦截器方法
-
+  
   |              方法名               |      描述      |
   | :-------------------------------: | :------------: |
   |    `<mvc:mapping path="/*"/>`     |  拦截请求路径  |
   | `<mvc:exclude-mapping path="/"/>` | 不拦截请求路径 |
-
+  
   [测试拦截器：](https://s1.ax1x.com/2022/07/19/jTwN0P.png)
-
+  
   ​                                    [<img src="https://s1.ax1x.com/2022/07/19/jTwN0P.png" alt="jTwN0P.png" style="zoom:50%;" />](https://imgtu.com/i/jTwN0P)
 
 ## 2. 多个拦截器顺序
@@ -2841,7 +2848,7 @@ public ResponseEntity<byte[]> testResponseEntity(HttpSession session) throws IOE
 - index.html中添加测试链接
 
   ~~~html
-  <a th:href="@{/testExcept ionHandler}">测试异常处理</a><br>
+  <a th:href="@{/testExceptionHandler}">测试异常处理</a><br>
   ~~~
 
   运行结果：

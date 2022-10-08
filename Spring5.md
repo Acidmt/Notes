@@ -124,7 +124,7 @@ Spring5
        public void testAdd(){
            //1.加载spring配置文件
            ApplicationContext context =
-               new ClassPathXmlApplicat ionContext ("bean.xml");
+               new ClassPathXmlApplicationContext("bean.xml");
            //2.获取配置创建的对象
            User user = context.getBean("user",User.class);
            System.out.println(user);
@@ -515,7 +515,7 @@ ApplicationContext常用类：
 
 ### 5.2 Bean基于XML方式创建对象和注入属性
 
->  之前入门案例里用`<bean>`标签，来创建对象，该标签有很多属性，改标签在创建对象的时候也会默认执行无参构造方法。
+>  之前入门案例里用`<bean>`标签，来创建对象，该标签有很多属性，该标签在创建对象的时候也会默认执行无参构造方法。
 
 bean标签属性：
 
@@ -523,7 +523,7 @@ bean标签属性：
 | :-------: | :----------------------------------------: |
 |  id属性   |         唯一标识，即给对象起的名字         |
 | class属性 |                 类的全路径                 |
-|   name    | 功能类似于ID属性，但改属性可以添加特殊符号 |
+|   name    | 功能类似于ID属性，但该属性可以添加特殊符号 |
 
 #### 5.2.1 基于XML方式创建对象
 
@@ -680,7 +680,7 @@ bean.xml
 
 2. 注入值中包含一些特殊符号
 
-   在bean.xml中，要想给属性设置特殊符号，可以用转移符号，也可以用CDATA实现
+   在bean.xml中，要想给属性设置特殊符号，可以用转义符号，也可以用CDATA实现
 
    ~~~xml
    <property name-"address" >
@@ -731,7 +731,7 @@ bean.xml
   public class UserService {
   
       //创建UserDao类型属性，生成set方法
-      private  UserDao userDao;
+      private UserDao userDao;
   
       public void setUserDao(UserDao userDao) {
           this.userDao = userDao;
@@ -843,14 +843,6 @@ bean.xml
   ~~~java
   package com.Keafmd.spring5.bean;
   
-  /**
-   * Keafmd
-   *
-   * @ClassName: Emp
-   * @Description: 员工类
-   * @author: 牛哄哄的柯南
-   * @date: 2021-01-15 9:53
-   */
   public class Emp {
   
       private String ename;
@@ -877,7 +869,7 @@ bean.xml
       }
   }
   ~~~
-
+  
 - 编写Bean.xml，进行内部属性注入
 
   ~~~xml
@@ -1197,7 +1189,7 @@ bean.xml
   }
   ~~~
 
-- 创建Course.java类，设置设置课程名称
+- 创建Course.java类，设置课程名称
 
   ~~~java
   public class Course{
@@ -1764,13 +1756,12 @@ autowire常用属性值有两个
           System.out.println("service add......");
       }
   }
-  =
   ~~~
-
+  
   > 在注解里的value值可以不写，默认就是类的首字母小写。
   >
   > 上面的代码等效于之前XML注入中的`<bean id="userService" class=".."/>`
-
+  
 - 创建测试类
 
   ~~~java
@@ -1866,6 +1857,8 @@ autowire常用属性值有两个
 ### 6.2 注解方式实现属性注入
 
 > 同XML注入一样，注解注入也同样可以使用多种方式
+>
+> 可以将外部bean注入到注解所在属性中。
 
 注解注入四种方式：
 
@@ -2915,7 +2908,7 @@ public void beafor(){
   }
   ~~~
 
-- 创建BookServ.java实现添加书籍对象的操作
+- 创建BookService.java实现添加书籍对象的操作
 
   ~~~java
   @Service
@@ -2943,7 +2936,7 @@ public void beafor(){
 
   ~~~java
   @Repository
-  public class BookDaoImpl impl ements BookDao {
+  public class BookDaoImpl implements BookDao {
       //注入JdbcTemplate
       @Autowired
       private JdbcTemplate jdbcTemplate;
@@ -3044,7 +3037,7 @@ public void beafor(){
 
   ~~~java
   @Repository
-  public class BookDaoImpl impl ements BookDao {
+  public class BookDaoImpl implements BookDao {
       //注入JdbcTemplate
       @Autowired
       private JdbcTemplate jdbcTemplate;
@@ -3675,7 +3668,7 @@ public void beafor(){
   
       //查询返回对象	
       public Book find0ne(String id){	
-          return bookDao. findBookInfo(id) ;
+          return bookDao. findBookInfo(id);
       }
   
       //查询返回结合
@@ -3685,7 +3678,7 @@ public void beafor(){
   
       //批量添加
       public void batchAdd (List<0bject[]> batchArgs) {
-          bookDao. batchAddBook(batchArgs) ;
+          bookDao. batchAddBook(batchArgs);
       }
   
   
@@ -3785,7 +3778,7 @@ public void beafor(){
           return bookList ;
       }
       //批量添加
-      public void batchAddBook (List<0bject[]> batchArgs){
+      public void batchAddBook (List<Object[]> batchArgs){
           String sql = "insert into t_book values(?, ?,?)" ;
           int[] ints = jdbcTemplate. batchUpdate (sql,batchArgs) ;
           System. out. println (Arrays. toString(ints));
@@ -4646,7 +4639,7 @@ public void beafor(){
   >
   > 在 service 类上面（或者 service 类里面方法上面）添加事务注解：
   >
-  > 1. @Transactional，这个注解添加到类上面，也可以添加方法上面
+  > 1. @Transactional，这个注解添加到类上面，也可以添加到方法上面
   > 2. 如果把这个注解添加类上面，这个类里面所有的方法都添加事务
   > 3. 如果把这个注解添加方法上面，为这个方法添加事务
 

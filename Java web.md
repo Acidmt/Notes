@@ -769,6 +769,8 @@ DTD与Schema的不同：
 
 #### 4.3 IDEA中的Maven操作
 
+创建之前需要先在IDEA中配置Tomcat
+
 - 新建项目，选择Maven项目，在新打开的Maven原型中找到`org.apache.maven.archetypes:maven-archetype -webapp`使用它。
 
   [图解示例：](https://s4.ax1x.com/2022/02/24/bkC25T.png)
