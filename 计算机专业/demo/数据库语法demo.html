@@ -1,0 +1,414 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'>
+<title>数据库语法demo</title>
+<meta name="referrer" content="no-referrer">
+</head>
+<body><div>[TOC]</div>
+<h1 id='数据表的创建删除与修改'>数据表的创建、删除与修改</h1>
+<blockquote><p><mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.258ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 556 1000" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.566ex;"><defs><path id="MJX-5-TEX-N-5B" d="M118 -250V750H255V710H158V-210H255V-250H118Z"></path><path id="MJX-5-TEX-N-5D" d="M22 710V750H159V-250H22V-210H119V710H22Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mo"><use data-c="5B" xlink:href="#MJX-5-TEX-N-5B"></use></g><g data-mml-node="mo" transform="translate(278,0)"><use data-c="5D" xlink:href="#MJX-5-TEX-N-5D"></use></g></g></g></svg></mjx-container><script type="math/tex">[]</script>种的内容可选，<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="3.52ex" height="1.312ex" role="img" focusable="false" viewBox="0 -540 1556 580" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.09ex;"><defs><path id="MJX-6-TEX-N-3C" d="M694 -11T694 -19T688 -33T678 -40Q671 -40 524 29T234 166L90 235Q83 240 83 250Q83 261 91 266Q664 540 678 540Q681 540 687 534T694 519T687 505Q686 504 417 376L151 250L417 124Q686 -4 687 -5Q694 -11 694 -19Z"></path><path id="MJX-6-TEX-N-3E" d="M84 520Q84 528 88 533T96 539L99 540Q106 540 253 471T544 334L687 265Q694 260 694 250T687 235Q685 233 395 96L107 -40H101Q83 -38 83 -20Q83 -19 83 -17Q82 -10 98 -1Q117 9 248 71Q326 108 378 132L626 250L378 368Q90 504 86 509Q84 513 84 520Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mo"><use data-c="3C" xlink:href="#MJX-6-TEX-N-3C"></use><use data-c="3E" xlink:href="#MJX-6-TEX-N-3E" transform="translate(778,0)"></use></g></g></g></svg></mjx-container><script type="math/tex"><></script>中的参数必选</p>
+</blockquote>
+<h2 id='1-创建表'>1. 创建表</h2>
+<pre><code class='language-sql' lang='sql'>create table 表名(
+			列名1 数据类型 [约束条件]
+			[,列名2 数据类型 [约束条件]]
+				...
+			表级约束条件);
+</code></pre>
+<h2 id='2-表的修改'>2. 表的修改</h2>
+<h3 id='新增一列'>新增一列</h3>
+<pre><code class='language-sql' lang='sql'>alter table 表名 add 列名 数据类型 [约束条件];
+alter table student add semail varchar(20);
+</code></pre>
+<ul>
+<li><p>添加主键</p>
+<pre><code class='language-sql' lang='sql'>alter table 表名 add primary key(列名);
+</code></pre>
+</li>
+<li><p>添加外键</p>
+<pre><code class='language-sql' lang='sql'>ALTER table 表名 add foreign key(列名) REFERENCES 表名(列名); 
+</code></pre>
+</li>
+
+</ul>
+<h3 id='修改列名称'>修改列名称 </h3>
+<pre><code class='language-sql' lang='sql'>alter table 表名 change 旧列名 新列名 数据类型;
+alter table student change semail se1 varchar(20);
+</code></pre>
+<h3 id='修改列的数据类型'>修改列的数据类型</h3>
+<pre><code class='language-sql' lang='sql'>alter table 表名 modify 列名 新数据类型;    
+alter table student modify sel char(20);
+</code></pre>
+<ul>
+<li><p>修改字符集</p>
+<pre><code class='language-sql' lang='sql'>alter table 表名 modify 列名 数据类型 character set gbk/utf8;
+</code></pre>
+</li>
+<li><p>处理字符乱码错误</p>
+<pre><code class='language-sql' lang='sql'>set names gbk/utf8;
+</code></pre>
+</li>
+
+</ul>
+<h3 id='删除列'>删除列</h3>
+<pre><code class='language-sql' lang='sql'>alter table 表名 drop 列名;
+alter table student drop sel;
+</code></pre>
+<ul>
+<li><p>删除主键</p>
+<pre><code class='language-sql' lang='sql'>alter table 表名 drop primary key;
+</code></pre>
+</li>
+<li><p>删除外键</p>
+<pre><code class='language-sql' lang='sql'>alter table 表名 drop foreign key 外键名;
+</code></pre>
+</li>
+
+</ul>
+<h3 id='表的删除'>表的删除</h3>
+<pre><code class='language-sql' lang='sql'>drop table 表名;
+</code></pre>
+<h2 id='3-索引的创建与删除'>3. 索引的创建与删除</h2>
+<h3 id='创建索引'>创建索引</h3>
+<pre><code class='language-sql' lang='sql'>create [unique] index 索引名 on 表名(列名 次序 [,列名 次序]...);
+create INDEX s2 on student(sbirthdate asc,smajor desc);
+</code></pre>
+<p>或者：</p>
+<pre><code class='language-sql' lang='sql'>alter table 表名 add index 表名(列名 次序);
+alter table student add index student(sbirth desc);
+</code></pre>
+<h3 id='查看索引'>查看索引</h3>
+<pre><code class='language-sql' lang='sql'>show index from 表名;
+show index from student;
+</code></pre>
+<h3 id='修改索引'>修改索引</h3>
+<blockquote><p>5.7 版本之前 先删除后新建</p>
+</blockquote>
+<p>5.7 版本之后：</p>
+<pre><code class='language-sql' lang='sql'>alter table student rename index 旧索引名 to 新索引名;
+alter table student rename index s2 to s3;
+</code></pre>
+<h3 id='删除索引'>删除索引</h3>
+<pre><code class='language-sql' lang='sql'>drop index 索引名 on 表名;
+alter table 表名 drop index 索引名;
+</code></pre>
+<h2 id='4-数据更新'>4. 数据更新</h2>
+<p>首先创建三个表并插入数据</p>
+<blockquote><p>student表：学生表；属性：sno、sname、ssex、sbirthdate、smajor</p>
+<p>course表：课程表；属性：cno、cname、cpno、ccredit(学分)</p>
+<p>sc表：学生选课表；属性：sno、cno、grade、Semester、Teachingclass</p>
+</blockquote>
+<pre><code class='language-sql' lang='sql'>#学生表
+CREATE TABLE Student          
+(Sno   CHAR(8) PRIMARY KEY, 
+ Sname VARCHAR(20) UNIQUE,            
+ Ssex  CHAR(6),
+ Sbirthdate   date,
+ Smajor  varCHAR(40)
+); 
+
+#课程表
+create table course
+(Cno CHAR(5) PRIMARY KEY,
+ Cname CHAR(40) not null,
+ Cpno  CHAR(5),
+ Ccredit SMALLINT,
+ FOREIGN KEY (Cpno) REFERENCES Course(Cno)
+); 
+
+#学生选课表
+CREATE TABLE SC
+(Sno CHAR(8),
+ Cno CHAR(5),
+ Grade SMALLINT,
+ Semester char(5),
+ Teachingclass char(8),
+ PRIMARY KEY (Sno,Cno),
+ FOREIGN KEY (Sno) REFERENCES Student(Sno),
+ FOREIGN KEY (Cno)REFERENCES Course(Cno)
+);
+
+#数据更新
+insert into student values(&#39;20180001&#39;,&#39;李勇&#39;,&#39;男&#39;,&#39;2000-3-8&#39;,&#39;信息安全&#39;);
+insert into student values(&#39;20180002&#39;,&#39;刘晨&#39;,&#39;女&#39;,&#39;1999-9-1&#39;,&#39;计算机科学与技术&#39;);
+insert into student values(&#39;20180003&#39;,&#39;王敏&#39;,&#39;女&#39;,&#39;2001-8-1&#39;,&#39;计算机科学与技术&#39;);
+insert into student values(&#39;20180004&#39;,&#39;张立&#39;,&#39;男&#39;,&#39;2000-1-8&#39;,&#39;计算机科学与技术&#39;);
+insert into student values(&#39;20180005&#39;,&#39;陈新奇&#39;,&#39;男&#39;,&#39;2001-11-1&#39;,&#39;信息管理与信息系统&#39;);
+insert into student values(&#39;20180006&#39;,&#39;赵明&#39;,&#39;男&#39;,&#39;2000-6-12&#39;,&#39;数据科学与大数据技术&#39;);
+insert into student values(&#39;20180007&#39;,&#39;王佳佳&#39;,&#39;女&#39;,&#39;2001-12-7&#39;,&#39;数据科学与大数据技术&#39;);
+
+
+insert into course(cno,cname,ccredit,cpno) values(&#39;81001&#39;,&#39;程序设计基础与C语言&#39;,4,NULL);
+insert into course(cno,cname,ccredit,cpno) values(&#39;81007&#39;,&#39;离散数学&#39;,4,NULL);
+insert into course(cno,cname,ccredit,cpno) values(&#39;81002&#39;,&#39;数据结构&#39;,4,&#39;81001&#39;);
+insert into course(cno,cname,ccredit,cpno) values(&#39;81005&#39;,&#39;操作系统&#39;,4,&#39;81001&#39;);
+insert into course(cno,cname,ccredit,cpno) values(&#39;81003&#39;,&#39;数据库系统概论&#39;,4,&#39;81002&#39;);
+insert into course(cno,cname,ccredit,cpno) values(&#39;81006&#39;,&#39;Python语言&#39;,3,&#39;81002&#39;);
+insert into course(cno,cname,ccredit,cpno) values(&#39;81004&#39;,&#39;信息系统概论&#39;,4,&#39;81003&#39;);
+insert into course(cno,cname,ccredit,cpno) values(&#39;81008&#39;,&#39;大数据技术概论&#39;,4,&#39;81003&#39;);
+
+
+insert into sc     values(&#39;20180001&#39;,&#39;81001&#39;,85,&#39;20192&#39;,&#39;81001-01&#39;);
+insert into sc     values(&#39;20180001&#39;,&#39;81002&#39;,96,&#39;20201&#39;,&#39;81002-01&#39;);
+insert into sc     values(&#39;20180001&#39;,&#39;81003&#39;,87,&#39;20202&#39;,&#39;81003-01&#39;);
+insert into sc     values(&#39;20180002&#39;,&#39;81001&#39;,80,&#39;20192&#39;,&#39;81001-02&#39;);
+insert into sc     values(&#39;20180002&#39;,&#39;81002&#39;,98,&#39;20201&#39;,&#39;81002-01&#39;);
+insert into sc     values(&#39;20180002&#39;,&#39;81003&#39;,71,&#39;20202&#39;,&#39;81003-02&#39;);
+insert into sc     values(&#39;20180003&#39;,&#39;81001&#39;,81,&#39;20192&#39;,&#39;81001-01&#39;);
+insert into sc     values(&#39;20180003&#39;,&#39;81002&#39;,76,&#39;20201&#39;,&#39;81002-02&#39;);
+insert into sc     values(&#39;20180004&#39;,&#39;81001&#39;,56,&#39;20192&#39;,&#39;81001-02&#39;);
+insert into sc     values(&#39;20180004&#39;,&#39;81002&#39;,97,&#39;20201&#39;,&#39;81002-02&#39;);
+insert into sc     values(&#39;20180005&#39;,&#39;81003&#39;,68,&#39;20202&#39;,&#39;81003-01&#39;);
+</code></pre>
+<h3 id='插入数据'>插入数据</h3>
+<ul>
+<li><p>sql插入语句</p>
+<pre><code class='language-sql' lang='sql'>insert into 表名[(列名1...)]  VALUES(常量1....);
+insert into student values
+		(&#39;20180009&#39;,&#39;张三&#39;,&#39;男&#39;,&#39;2000-10-1&#39;,&#39;软件工程&#39;);
+insert into student(sno,sname,ssex,sbirthdate,smajor) values
+		(&#39;20180010&#39;,&#39;李红&#39;,&#39;女&#39;,&#39;2005-10-1&#39;,&#39;软件工程&#39;);
+insert into student(sname,sno) values(&#39;王五&#39;,&#39;20180011&#39;),(&#39;20180010&#39;,&#39;李红&#39;,&#39;女&#39;,&#39;2005-10-1&#39;,&#39;软件工程&#39;);
+</code></pre>
+</li>
+<li><p>插入子查询的值，子查询：以查询到的结果集合作为插入条件</p>
+<pre><code class='language-sql' lang='sql'>insert into 表名[(列名1...)] select 子句;
+insert into xs select sno from student; #将student表数据插入到sx表中
+#insert into xs(sno) select sno from student;
+</code></pre>
+</li>
+
+</ul>
+<h3 id='修改数据'>修改数据</h3>
+<pre><code class='language-sql' lang='sql'>update 表名 set 列名1=值|表达式.... [where 条件];
+update student set smajor=&#39;软件工程&#39;,ssex=&#39;男&#39; where sno=&#39;20180011&#39;;
+</code></pre>
+<p>例题1：将计算机科学与技术专业的学生成绩置<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.131ex" height="1.557ex" role="img" focusable="false" viewBox="0 -666 500 688" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.05ex;"><defs><path id="MJX-7-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="30" xlink:href="#MJX-7-TEX-N-30"></use></g></g></g></svg></mjx-container><script type="math/tex">0</script>；</p>
+<pre><code class='language-sql' lang='sql'>update sc set grade=0 where sno IN
+		(SELECT sno from student where smajor=&#39;计算机科学与技术&#39;);
+</code></pre>
+<p>例题2：将选修数据结构的计算机科学与技术专业的同学的生日都改成<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="13.45ex" height="1.692ex" role="img" focusable="false" viewBox="0 -666 5944.9 748" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.186ex;"><defs><path id="MJX-8-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-8-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path><path id="MJX-8-TEX-N-33" d="M127 463Q100 463 85 480T69 524Q69 579 117 622T233 665Q268 665 277 664Q351 652 390 611T430 522Q430 470 396 421T302 350L299 348Q299 347 308 345T337 336T375 315Q457 262 457 175Q457 96 395 37T238 -22Q158 -22 100 21T42 130Q42 158 60 175T105 193Q133 193 151 175T169 130Q169 119 166 110T159 94T148 82T136 74T126 70T118 67L114 66Q165 21 238 21Q293 21 321 74Q338 107 338 175V195Q338 290 274 322Q259 328 213 329L171 330L168 332Q166 335 166 348Q166 366 174 366Q202 366 232 371Q266 376 294 413T322 525V533Q322 590 287 612Q265 626 240 626Q208 626 181 615T143 592T132 580H135Q138 579 143 578T153 573T165 566T175 555T183 540T186 520Q186 498 172 481T127 463Z"></path><path id="MJX-8-TEX-N-2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path><path id="MJX-8-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-8-TEX-N-38" d="M70 417T70 494T124 618T248 666Q319 666 374 624T429 515Q429 485 418 459T392 417T361 389T335 371T324 363L338 354Q352 344 366 334T382 323Q457 264 457 174Q457 95 399 37T249 -22Q159 -22 101 29T43 155Q43 263 172 335L154 348Q133 361 127 368Q70 417 70 494ZM286 386L292 390Q298 394 301 396T311 403T323 413T334 425T345 438T355 454T364 471T369 491T371 513Q371 556 342 586T275 624Q268 625 242 625Q201 625 165 599T128 534Q128 511 141 492T167 463T217 431Q224 426 228 424L286 386ZM250 21Q308 21 350 55T392 137Q392 154 387 169T375 194T353 216T330 234T301 253T274 270Q260 279 244 289T218 306L210 311Q204 311 181 294T133 239T107 157Q107 98 150 60T250 21Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-8-TEX-N-32"></use><use data-c="30" xlink:href="#MJX-8-TEX-N-30" transform="translate(500,0)"></use><use data-c="32" xlink:href="#MJX-8-TEX-N-32" transform="translate(1000,0)"></use><use data-c="33" xlink:href="#MJX-8-TEX-N-33" transform="translate(1500,0)"></use></g><g data-mml-node="mo" transform="translate(2222.2,0)"><use data-c="2212" xlink:href="#MJX-8-TEX-N-2212"></use></g><g data-mml-node="mn" transform="translate(3222.4,0)"><use data-c="31" xlink:href="#MJX-8-TEX-N-31"></use><use data-c="30" xlink:href="#MJX-8-TEX-N-30" transform="translate(500,0)"></use></g><g data-mml-node="mo" transform="translate(4444.7,0)"><use data-c="2212" xlink:href="#MJX-8-TEX-N-2212"></use></g><g data-mml-node="mn" transform="translate(5444.9,0)"><use data-c="38" xlink:href="#MJX-8-TEX-N-38"></use></g></g></g></svg></mjx-container><script type="math/tex">2023-10-8</script>；</p>
+<pre><code class='language-sql' lang='sql'>update student set sbirthdate=&#39;2023-10-8&#39; where smajor=&#39;计算机科学与技术&#39;
+		and sno in(SELECT sno from sc where cno IN
+				(SELECT cno from course where cname=&#39;数据结构&#39;));
+</code></pre>
+<h3 id='删除数据'>删除数据</h3>
+<pre><code class='language-sql' lang='sql'>delete from 表名 [where 条件];
+delete from student; 
+#等价于:
+truncate table student;
+</code></pre>
+<p>例题1：删除计算机科学与技术专业所有学生的选课记录；</p>
+<pre><code class='language-sql' lang='sql'>delete from sc where sno in(select sno from student where smajor=&#39;计算机科学与技术&#39;);
+</code></pre>
+<p>例题2：删除数据库系统概论的选课信息；</p>
+<pre><code class='language-sql' lang='sql'>delete from sc where cno in(select cno from course where cname=&#39;数据库系统概论&#39;);
+</code></pre>
+<h2 id='5-数据查询'>5. 数据查询</h2>
+<p>三张表同上</p>
+<h3 id='51-单表查询'>5.1 单表查询</h3>
+<ul>
+<li><p>选择指定列</p>
+<pre><code class='language-sql' lang='sql'>select sno,sname from student;
+</code></pre>
+</li>
+
+</ul>
+<ul>
+<li><p>选择所有列</p>
+<pre><code class='language-sql' lang='sql'>select sno,sname,ssex,sbirthdate,smajor from student;
+select * from student;
+</code></pre>
+</li>
+
+</ul>
+<ul>
+<li><p>查询经过计算的值，查询所有学生的学号，姓名，年龄：</p>
+<pre><code class='language-sql' lang='sql'>#根据学生出生年月计算学生年龄
+select sno,sname,year(now())-year(sbirthdate) from student;
+</code></pre>
+</li>
+
+</ul>
+<h3 id='52-选择表中的若干元组'>5.2 选择表中的若干元组</h3>
+<h4 id='消除重复行'>消除重复行</h4>
+<p><code>distinct</code>：消除重复行</p>
+<pre><code class='language-sql' lang='sql'>#查询选课的学生学号
+select distinct sno from sc;
+</code></pre>
+<h4 id='查询满足条件的元组'>查询满足条件的元组</h4>
+<p>查询满足指定条件的元组通过<code>where</code>字句实现。<code>where</code>字句常用的查询条件如下：</p>
+<figure><table>
+<thead>
+<tr><th>查询条件</th><th style='text-align:center;' >关键字</th></tr></thead>
+<tbody><tr><td>比较</td><td style='text-align:center;' ><mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="33.572ex" height="2.059ex" role="img" focusable="false" viewBox="0 -716 14838.7 910" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.439ex;"><defs><path id="MJX-51-TEX-N-3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path><path id="MJX-51-TEX-N-2C" d="M78 35T78 60T94 103T137 121Q165 121 187 96T210 8Q210 -27 201 -60T180 -117T154 -158T130 -185T117 -194Q113 -194 104 -185T95 -172Q95 -168 106 -156T131 -126T157 -76T173 -3V9L172 8Q170 7 167 6T161 3T152 1T140 0Q113 0 96 17Z"></path><path id="MJX-51-TEX-N-3E" d="M84 520Q84 528 88 533T96 539L99 540Q106 540 253 471T544 334L687 265Q694 260 694 250T687 235Q685 233 395 96L107 -40H101Q83 -38 83 -20Q83 -19 83 -17Q82 -10 98 -1Q117 9 248 71Q326 108 378 132L626 250L378 368Q90 504 86 509Q84 513 84 520Z"></path><path id="MJX-51-TEX-N-3C" d="M694 -11T694 -19T688 -33T678 -40Q671 -40 524 29T234 166L90 235Q83 240 83 250Q83 261 91 266Q664 540 678 540Q681 540 687 534T694 519T687 505Q686 504 417 376L151 250L417 124Q686 -4 687 -5Q694 -11 694 -19Z"></path><path id="MJX-51-TEX-N-21" d="M78 661Q78 682 96 699T138 716T180 700T199 661Q199 654 179 432T158 206Q156 198 139 198Q121 198 119 206Q118 209 98 431T78 661ZM79 61Q79 89 97 105T141 121Q164 119 181 104T198 61Q198 31 181 16T139 1Q114 1 97 16T79 61Z"></path><path id="MJX-51-TEX-N-3B" d="M78 370Q78 394 95 412T138 430Q162 430 180 414T199 371Q199 346 182 328T139 310T96 327T78 370ZM78 60Q78 85 94 103T137 121Q202 121 202 8Q202 -44 183 -94T144 -169T118 -194Q115 -194 106 -186T95 -174Q94 -171 107 -155T137 -107T160 -38Q161 -32 162 -22T165 -4T165 4Q165 5 161 4T142 0Q110 0 94 18T78 60Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mo"><use data-c="3D" xlink:href="#MJX-51-TEX-N-3D"></use></g><g data-mml-node="mo" transform="translate(778,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(1222.7,0)"><use data-c="3E" xlink:href="#MJX-51-TEX-N-3E"></use></g><g data-mml-node="mo" transform="translate(2000.7,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(2445.3,0)"><use data-c="3C" xlink:href="#MJX-51-TEX-N-3C"></use></g><g data-mml-node="mo" transform="translate(3223.3,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(3668,0)"><use data-c="3E" xlink:href="#MJX-51-TEX-N-3E"></use><use data-c="3D" xlink:href="#MJX-51-TEX-N-3D" transform="translate(778,0)"></use></g><g data-mml-node="mo" transform="translate(5224,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(5668.7,0)"><use data-c="3C" xlink:href="#MJX-51-TEX-N-3C"></use><use data-c="3D" xlink:href="#MJX-51-TEX-N-3D" transform="translate(778,0)"></use></g><g data-mml-node="mo" transform="translate(7224.7,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(7669.3,0)"><use data-c="21" xlink:href="#MJX-51-TEX-N-21"></use></g><g data-mml-node="mo" transform="translate(8225.1,0)"><use data-c="3D" xlink:href="#MJX-51-TEX-N-3D"></use></g><g data-mml-node="mo" transform="translate(9003.1,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(9447.8,0)"><use data-c="3C" xlink:href="#MJX-51-TEX-N-3C"></use><use data-c="3E" xlink:href="#MJX-51-TEX-N-3E" transform="translate(778,0)"></use></g><g data-mml-node="mo" transform="translate(11003.8,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(11448.4,0)"><use data-c="21" xlink:href="#MJX-51-TEX-N-21"></use></g><g data-mml-node="mo" transform="translate(12004.2,0)"><use data-c="3E" xlink:href="#MJX-51-TEX-N-3E"></use></g><g data-mml-node="mo" transform="translate(12782.2,0)"><use data-c="2C" xlink:href="#MJX-51-TEX-N-2C"></use></g><g data-mml-node="mo" transform="translate(13226.9,0)"><use data-c="21" xlink:href="#MJX-51-TEX-N-21"></use></g><g data-mml-node="mo" transform="translate(13782.7,0)"><use data-c="3C" xlink:href="#MJX-51-TEX-N-3C"></use></g><g data-mml-node="mo" transform="translate(14560.7,0)"><use data-c="3B" xlink:href="#MJX-51-TEX-N-3B"></use></g></g></g></svg></mjx-container><script type="math/tex">=,>,<,>=,<=,!=,<>,!>,!<;</script> <code>NOT</code>+上述运算符</td></tr><tr><td>确定范围</td><td style='text-align:center;' ><code>BETWEEN AND</code>、<code>NOT BETWEEN AND</code></td></tr><tr><td>确定集合</td><td style='text-align:center;' ><code>IN</code>、<code>NOT IN</code></td></tr><tr><td>字符匹配</td><td style='text-align:center;' ><code>LIKE</code>、<code>NOT LIKE</code></td></tr><tr><td>空值</td><td style='text-align:center;' ><code>IS NULL</code>、<code>IS NOT NULL</code></td></tr><tr><td>多重条件(逻辑运算)</td><td style='text-align:center;' ><code>AND</code>、<code>OR</code>、<code>NOT</code></td></tr></tbody>
+</table></figure>
+<ul>
+<li><p>查询计算机科学与技术专业年龄大于22岁的学生的学号，姓名，年龄；</p>
+<pre><code class='language-sql' lang='sql'>select sno,sname,year(now())-year(sbirthdate) from student 
+	where smajor=&quot;计算机科学与技术&quot; and year(now())-year(sbirthdate)&gt;22;
+</code></pre>
+</li>
+
+</ul>
+<ul>
+<li><p>[not] <code>between....and....</code></p>
+<p>查询成绩是良好（80-90）的学生的学号，成绩；</p>
+<pre><code class='language-sql' lang='sql'>select sno,grade from sc where grade between 80 and 90;
+#不在80~90之间的学生
+select sno,grade from sc where grade not between 80 and 90; 
+</code></pre>
+</li>
+
+</ul>
+<ul>
+<li><p>确定集合：<code>in</code></p>
+<p> 查询计算机科学与技术和信息安全专业的同学的信息；</p>
+<pre><code class='language-sql' lang='sql'>select * from student where smajor in (&#39;计算机科学与技术&#39;,&#39;信息安全&#39;);
+#等价于：
+select * from student where smajor=&#39;计算机科学与技术&#39; or smajor=&#39;信息安全&#39;;
+</code></pre>
+</li>
+
+</ul>
+<ul>
+<li><p>字符匹配：关键字<code>like</code></p>
+<figure><table>
+<thead>
+<tr><th style='text-align:center;' >符号</th><th style='text-align:center;' >功能</th></tr></thead>
+<tbody><tr><td style='text-align:center;' ><code>_</code></td><td style='text-align:center;' >任意单个字符</td></tr><tr><td style='text-align:center;' ><code>%</code></td><td style='text-align:center;' >任意多个字符</td></tr><tr><td style='text-align:center;' ><code>escape</code> </td><td style='text-align:center;' >声明一个转义字符</td></tr></tbody>
+</table></figure>
+<pre><code class='language-sql' lang='sql'>select * from student where sname like &#39;刘%&#39;; 	#查询学生姓刘的学生，任意多个字符：刘某某
+select * from student where sname like &#39;王%&#39;;   #查询学生姓王的学生，单个字符：王
+</code></pre>
+<p> 查询开头三<code>DB_</code>的课程信息：</p>
+<pre><code class='language-sql' lang='sql'>select * from course where sname like &#39;DB#_%&#39; escape &#39;#&#39;;
+</code></pre>
+<blockquote><p><code>#</code>被<code>escape</code>声明变为转义字符，<code>#</code>后面的第一个字符将变为普通的字符使用，不再有通配符意义。注意<code>\</code>不能声明为转义字符</p>
+</blockquote>
+</li>
+
+</ul>
+<ul>
+<li><p>空值判断：<code>is null</code>、<code>is not null</code></p>
+<p> 查询先修课<code>cpno</code>为空的课程信息：</p>
+<pre><code class='language-sql' lang='sql'>select * from course where cpno is null;
+#不为空的课程信息
+select * from course where cpno is not null;
+</code></pre>
+</li>
+
+</ul>
+<ul>
+<li><p>多重条件查询：<code>and</code>、<code>or</code>、<code>not</code></p>
+<p> 查询成绩在90分以上的学分为4的课程信息：</p>
+<pre><code class='language-sql' lang='sql'>select * from course where ccredit=4 and cno in(select cno from sc where grade&gt;90);
+</code></pre>
+<p> 查询成绩在90分以上的计算机科学与技术专业的男生同学的信息：</p>
+<pre><code class='language-sql' lang='sql'>select * from student where smajor=&#39;计算机科学与技术&#39; 
+		and ssex=&#39;男&#39; and sno in(select sno from sc where grade&gt;90);
+</code></pre>
+<p> 查询数据结构和程序设计基础与c语言的选课成绩：</p>
+<pre><code class='language-sql' lang='sql'>SELECT Grade FROM sc WHERE Cno IN
+	(SELECT Cno FROM course WHERE cname in(&#39;数据结构&#39;,&#39;程序设计基础与c语言&#39;));
+</code></pre>
+</li>
+
+</ul>
+<h4 id='order-by排序'>ORDER BY排序</h4>
+<p><code>ORDER BY</code>后面跟列名[表达式]，参数<code>asc</code>升序(默认)，<code>desc</code>降序</p>
+<p> 在学生表中，将学生的信息按照年龄的升序排列</p>
+<pre><code class='language-sql' lang='sql'>select * from student ORDER BY year(now())-year(sbirthdate) asc;
+select * from student ORDER BY sbirthdate desc;			#运行结果同上
+</code></pre>
+<p>将计算机科学与技术的同学按照其选课的平均成绩进行降序排列：</p>
+<pre><code class='language-sql' lang='sql'>SELECT sno, avg(grade) FROM sc where sno in 
+	(SELECT sno from student where smajor=&#39;计算机科学与技术&#39;) GROUP BY sno ORDER BY avg(grade) desc;
+select * from student where smajor=&#39;计算机科学与技术&#39; 
+	order by (select avg(grade) from sc where student.sno=sc.sno GROUP BY sno) desc;
+</code></pre>
+<h4 id='聚集函数'>聚集函数</h4>
+<p>SQL提供了许多聚集函数，主要有：</p>
+<figure><table>
+<thead>
+<tr><th style='text-align:center;' >函数名</th><th style='text-align:left;' >作用</th></tr></thead>
+<tbody><tr><td style='text-align:center;' >COUNT(*)</td><td style='text-align:left;' >统计元组个数</td></tr><tr><td style='text-align:center;' >COUNT([DISTINCT|ALL]&lt;列名&gt;)</td><td style='text-align:left;' >统计一列中值的个数</td></tr><tr><td style='text-align:center;' >SUM([DISTINCT|ALL]&lt;列名&gt;)</td><td style='text-align:left;' >计算一列值得总和(此列为数值型)</td></tr><tr><td style='text-align:center;' >AVG([DISTINCT|ALL]&lt;列名&gt;)</td><td style='text-align:left;' >计算一列值得平均值</td></tr><tr><td style='text-align:center;' >MAX([DISTINCT|ALL]&lt;列名&gt;)</td><td style='text-align:left;' >求一列值中的最大值</td></tr><tr><td style='text-align:center;' >MIN([DISTINCT|ALL]&lt;列名&gt;)</td><td style='text-align:left;' >求一列值中的最小值</td></tr></tbody>
+</table></figure>
+<pre><code class='language-sql' lang='sql'>#查询学生来自几个专业
+select count(DISTINCT smajor) 专业数目 from student;
+#查询选课的学生人数
+select count(DISTINCT sno) 选课人数 from sc;
+#查询学生选课成绩的最大值和最小值
+select MAX(grade),MIN(grade) from sc;
+</code></pre>
+<h4 id='limit子句'>limit子句</h4>
+<p><code>limit m</code>查询出<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.986ex" height="1.025ex" role="img" focusable="false" viewBox="0 -442 878 453" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.025ex;"><defs><path id="MJX-52-TEX-I-1D45A" d="M21 287Q22 293 24 303T36 341T56 388T88 425T132 442T175 435T205 417T221 395T229 376L231 369Q231 367 232 367L243 378Q303 442 384 442Q401 442 415 440T441 433T460 423T475 411T485 398T493 385T497 373T500 364T502 357L510 367Q573 442 659 442Q713 442 746 415T780 336Q780 285 742 178T704 50Q705 36 709 31T724 26Q752 26 776 56T815 138Q818 149 821 151T837 153Q857 153 857 145Q857 144 853 130Q845 101 831 73T785 17T716 -10Q669 -10 648 17T627 73Q627 92 663 193T700 345Q700 404 656 404H651Q565 404 506 303L499 291L466 157Q433 26 428 16Q415 -11 385 -11Q372 -11 364 -4T353 8T350 18Q350 29 384 161L420 307Q423 322 423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 181Q151 335 151 342Q154 357 154 369Q154 405 129 405Q107 405 92 377T69 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><use data-c="1D45A" xlink:href="#MJX-52-TEX-I-1D45A"></use></g></g></g></svg></mjx-container><script type="math/tex">m</script>个元组</p>
+<p><code>limit m,n</code>查询从<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="5.883ex" height="1.692ex" role="img" focusable="false" viewBox="0 -666 2600.4 748" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.186ex;"><defs><path id="MJX-53-TEX-I-1D45A" d="M21 287Q22 293 24 303T36 341T56 388T88 425T132 442T175 435T205 417T221 395T229 376L231 369Q231 367 232 367L243 378Q303 442 384 442Q401 442 415 440T441 433T460 423T475 411T485 398T493 385T497 373T500 364T502 357L510 367Q573 442 659 442Q713 442 746 415T780 336Q780 285 742 178T704 50Q705 36 709 31T724 26Q752 26 776 56T815 138Q818 149 821 151T837 153Q857 153 857 145Q857 144 853 130Q845 101 831 73T785 17T716 -10Q669 -10 648 17T627 73Q627 92 663 193T700 345Q700 404 656 404H651Q565 404 506 303L499 291L466 157Q433 26 428 16Q415 -11 385 -11Q372 -11 364 -4T353 8T350 18Q350 29 384 161L420 307Q423 322 423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 181Q151 335 151 342Q154 357 154 369Q154 405 129 405Q107 405 92 377T69 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path><path id="MJX-53-TEX-N-2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path><path id="MJX-53-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><use data-c="1D45A" xlink:href="#MJX-53-TEX-I-1D45A"></use></g><g data-mml-node="mo" transform="translate(1100.2,0)"><use data-c="2B" xlink:href="#MJX-53-TEX-N-2B"></use></g><g data-mml-node="mn" transform="translate(2100.4,0)"><use data-c="31" xlink:href="#MJX-53-TEX-N-31"></use></g></g></g></svg></mjx-container><script type="math/tex">m+1</script>行开始的<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.357ex" height="1.025ex" role="img" focusable="false" viewBox="0 -442 600 453" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.025ex;"><defs><path id="MJX-54-TEX-I-1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><use data-c="1D45B" xlink:href="#MJX-54-TEX-I-1D45B"></use></g></g></g></svg></mjx-container><script type="math/tex">n</script>个元组</p>
+<p> 查询成绩在前五名的学生学号：</p>
+<pre><code class='language-sql' lang='sql'>select sno,grade from sc order by grade dsec limit 5;
+</code></pre>
+<p> 查询成绩在6-10名的学生学号，成绩；</p>
+<pre><code class='language-sql' lang='sql'>select sno,grade from sc order by grade desc limit5,5;
+</code></pre>
+<h4 id='group-by'><mark>GROUP BY</mark></h4>
+<p><code>GROUP BY</code>子句将查询结果按某一列或多列的值分组，值相等的为一组，如果是多列，则先对第一列的值进行分组，然后对每一组中的值按照第二列值分组，依次类推。结果集中如果有重复的列组值，则将其合并为一行输出。</p>
+<p><code>GROUP BY</code>有个分组筛选条件<code>HAVING</code> 后面跟判断表达式</p>
+<p>例：对表A，B两列进行如下分组</p>
+<figure><table>
+<thead>
+<tr><th style='text-align:center;' >A</th><th style='text-align:center;' >B</th></tr></thead>
+<tbody><tr><td style='text-align:center;' >1</td><td style='text-align:center;' >2</td></tr><tr><td style='text-align:center;' >1</td><td style='text-align:center;' >2</td></tr><tr><td style='text-align:center;' >1</td><td style='text-align:center;' >3</td></tr><tr><td style='text-align:center;' >2</td><td style='text-align:center;' >4</td></tr></tbody>
+</table></figure>
+<p>最后的分组结果为：</p>
+<figure><table>
+<thead>
+<tr><th style='text-align:center;' >A</th><th style='text-align:center;' >B</th></tr></thead>
+<tbody><tr><td style='text-align:center;' >1</td><td style='text-align:center;' >2</td></tr><tr><td style='text-align:center;' >1</td><td style='text-align:center;' >3</td></tr><tr><td style='text-align:center;' >2</td><td style='text-align:center;' >4</td></tr></tbody>
+</table></figure>
+<blockquote><p>对查询结果分组的目的之一是细化聚集函数的作用对象，如果未对查询结果分组，聚集函数将作用于整个查询结果，分组后聚集函数将<strong>作用于每一组</strong>，即每组都有一个聚集函数的值。</p>
+</blockquote>
+<p>查询学生的学号，平均成绩</p>
+<pre><code class='language-sql' lang='sql'>select cno,count(sno) from sc group by cno;
+</code></pre>
+<blockquote><p>该语句对查询结果按<code>Cno</code>的值进行分组，所有具有相同<code>cno</code>值的元素为一组，然后对每一组应用聚集函数<code>COUNT</code>进行计算，求得改组的学生人数</p>
+</blockquote>
+<p> 查询课程的课程号，平均成绩，并按照平均成绩降序排列</p>
+<pre><code class='language-sql' lang='sql'>select sno,avg(grade) from sc group by cno order by avg(grade) desc;
+</code></pre>
+<p>查询学生的平均年龄大于20岁的专业名</p>
+<pre><code class='language-sql' lang='sql'>select smajor,avg(year(now())-year(sbirthdate)) 
+	from student group by smajor having avg(year(now())-year(sbirthdate))&gt;20;
+</code></pre>
+<blockquote><p>先用<code>group by</code>对smajor进行分组，再用<code>having</code>来过滤平均年龄大于<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="2.262ex" height="1.557ex" role="img" focusable="false" viewBox="0 -666 1000 688" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.05ex;"><defs><path id="MJX-56-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-56-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-56-TEX-N-32"></use><use data-c="30" xlink:href="#MJX-56-TEX-N-30" transform="translate(500,0)"></use></g></g></g></svg></mjx-container><script type="math/tex">20</script>的数据</p>
+</blockquote>
+<p>查询<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="4.525ex" height="1.557ex" role="img" focusable="false" viewBox="0 -666 2000 688" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.05ex;"><defs><path id="MJX-59-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-59-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path><path id="MJX-59-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-59-TEX-N-39" d="M352 287Q304 211 232 211Q154 211 104 270T44 396Q42 412 42 436V444Q42 537 111 606Q171 666 243 666Q245 666 249 666T257 665H261Q273 665 286 663T323 651T370 619T413 560Q456 472 456 334Q456 194 396 97Q361 41 312 10T208 -22Q147 -22 108 7T68 93T121 149Q143 149 158 135T173 96Q173 78 164 65T148 49T135 44L131 43Q131 41 138 37T164 27T206 22H212Q272 22 313 86Q352 142 352 280V287ZM244 248Q292 248 321 297T351 430Q351 508 343 542Q341 552 337 562T323 588T293 615T246 625Q208 625 181 598Q160 576 154 546T147 441Q147 358 152 329T172 282Q197 248 244 248Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-59-TEX-N-32"></use><use data-c="30" xlink:href="#MJX-59-TEX-N-30" transform="translate(500,0)"></use><use data-c="31" xlink:href="#MJX-59-TEX-N-31" transform="translate(1000,0)"></use><use data-c="39" xlink:href="#MJX-59-TEX-N-39" transform="translate(1500,0)"></use></g></g></g></svg></mjx-container><script type="math/tex">2019</script>年第<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.131ex" height="1.507ex" role="img" focusable="false" viewBox="0 -666 500 666" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: 0px;"><defs><path id="MJX-81-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-81-TEX-N-32"></use></g></g></g></svg></mjx-container><script type="math/tex">2</script>学期选修课程数超过<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="2.262ex" height="1.557ex" role="img" focusable="false" viewBox="0 -666 1000 688" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.05ex;"><defs><path id="MJX-66-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-66-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="31" xlink:href="#MJX-66-TEX-N-31"></use><use data-c="30" xlink:href="#MJX-66-TEX-N-30" transform="translate(500,0)"></use></g></g></g></svg></mjx-container><script type="math/tex">10</script>门的学生学号</p>
+<pre><code class='language-sql' lang='sql'>select sno from sc 
+	where semester=20192 		#先求出2019年第二学期选课的所有学生
+	group by sno 				#用group b字句按sno进行分组
+	having count(*)&gt;10;			#用聚集函数count对每一组进行计数
+</code></pre>
+<blockquote><p>这里<code>having</code>语句给出了选择组的条件，只有满足条件(即一个组中元组的个数<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="4.651ex" height="1.597ex" role="img" focusable="false" viewBox="0 -666 2055.8 706" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.09ex;"><defs><path id="MJX-69-TEX-N-3E" d="M84 520Q84 528 88 533T96 539L99 540Q106 540 253 471T544 334L687 265Q694 260 694 250T687 235Q685 233 395 96L107 -40H101Q83 -38 83 -20Q83 -19 83 -17Q82 -10 98 -1Q117 9 248 71Q326 108 378 132L626 250L378 368Q90 504 86 509Q84 513 84 520Z"></path><path id="MJX-69-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-69-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mo"><use data-c="3E" xlink:href="#MJX-69-TEX-N-3E"></use></g><g data-mml-node="mn" transform="translate(1055.8,0)"><use data-c="31" xlink:href="#MJX-69-TEX-N-31"></use><use data-c="30" xlink:href="#MJX-69-TEX-N-30" transform="translate(500,0)"></use></g></g></g></svg></mjx-container><script type="math/tex">>10</script>，表示此学生<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="4.525ex" height="1.557ex" role="img" focusable="false" viewBox="0 -666 2000 688" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.05ex;"><defs><path id="MJX-59-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-59-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path><path id="MJX-59-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-59-TEX-N-39" d="M352 287Q304 211 232 211Q154 211 104 270T44 396Q42 412 42 436V444Q42 537 111 606Q171 666 243 666Q245 666 249 666T257 665H261Q273 665 286 663T323 651T370 619T413 560Q456 472 456 334Q456 194 396 97Q361 41 312 10T208 -22Q147 -22 108 7T68 93T121 149Q143 149 158 135T173 96Q173 78 164 65T148 49T135 44L131 43Q131 41 138 37T164 27T206 22H212Q272 22 313 86Q352 142 352 280V287ZM244 248Q292 248 321 297T351 430Q351 508 343 542Q341 552 337 562T323 588T293 615T246 625Q208 625 181 598Q160 576 154 546T147 441Q147 358 152 329T172 282Q197 248 244 248Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-59-TEX-N-32"></use><use data-c="30" xlink:href="#MJX-59-TEX-N-30" transform="translate(500,0)"></use><use data-c="31" xlink:href="#MJX-59-TEX-N-31" transform="translate(1000,0)"></use><use data-c="39" xlink:href="#MJX-59-TEX-N-39" transform="translate(1500,0)"></use></g></g></g></svg></mjx-container><script type="math/tex">2019</script>年第<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.131ex" height="1.507ex" role="img" focusable="false" viewBox="0 -666 500 666" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: 0px;"><defs><path id="MJX-81-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-81-TEX-N-32"></use></g></g></g></svg></mjx-container><script type="math/tex">2</script>学期选修课程超过<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="2.262ex" height="1.557ex" role="img" focusable="false" viewBox="0 -666 1000 688" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.05ex;"><defs><path id="MJX-66-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-66-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="31" xlink:href="#MJX-66-TEX-N-31"></use><use data-c="30" xlink:href="#MJX-66-TEX-N-30" transform="translate(500,0)"></use></g></g></g></svg></mjx-container><script type="math/tex">10</script>门)的组才会被选出来</p>
+</blockquote>
+<p><mark>注意：</mark>关系数据库管理系统在处理SQL语句时，先处理<code>WHERE</code>子句，根据条件选出合格元组，生成一个临时表，上例中选出了<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="4.525ex" height="1.557ex" role="img" focusable="false" viewBox="0 -666 2000 688" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: -0.05ex;"><defs><path id="MJX-59-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path><path id="MJX-59-TEX-N-30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path><path id="MJX-59-TEX-N-31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path><path id="MJX-59-TEX-N-39" d="M352 287Q304 211 232 211Q154 211 104 270T44 396Q42 412 42 436V444Q42 537 111 606Q171 666 243 666Q245 666 249 666T257 665H261Q273 665 286 663T323 651T370 619T413 560Q456 472 456 334Q456 194 396 97Q361 41 312 10T208 -22Q147 -22 108 7T68 93T121 149Q143 149 158 135T173 96Q173 78 164 65T148 49T135 44L131 43Q131 41 138 37T164 27T206 22H212Q272 22 313 86Q352 142 352 280V287ZM244 248Q292 248 321 297T351 430Q351 508 343 542Q341 552 337 562T323 588T293 615T246 625Q208 625 181 598Q160 576 154 546T147 441Q147 358 152 329T172 282Q197 248 244 248Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-59-TEX-N-32"></use><use data-c="30" xlink:href="#MJX-59-TEX-N-30" transform="translate(500,0)"></use><use data-c="31" xlink:href="#MJX-59-TEX-N-31" transform="translate(1000,0)"></use><use data-c="39" xlink:href="#MJX-59-TEX-N-39" transform="translate(1500,0)"></use></g></g></g></svg></mjx-container><script type="math/tex">2019</script>年第<mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="1.131ex" height="1.507ex" role="img" focusable="false" viewBox="0 -666 500 666" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" style="vertical-align: 0px;"><defs><path id="MJX-81-TEX-N-32" d="M109 429Q82 429 66 447T50 491Q50 562 103 614T235 666Q326 666 387 610T449 465Q449 422 429 383T381 315T301 241Q265 210 201 149L142 93L218 92Q375 92 385 97Q392 99 409 186V189H449V186Q448 183 436 95T421 3V0H50V19V31Q50 38 56 46T86 81Q115 113 136 137Q145 147 170 174T204 211T233 244T261 278T284 308T305 340T320 369T333 401T340 431T343 464Q343 527 309 573T212 619Q179 619 154 602T119 569T109 550Q109 549 114 549Q132 549 151 535T170 489Q170 464 154 447T109 429Z"></path></defs><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mn"><use data-c="32" xlink:href="#MJX-81-TEX-N-32"></use></g></g></g></svg></mjx-container><script type="math/tex">2</script>学期选课的所有学生，再使用<code>GROUP BY</code>子句对临时表按照学号进行分组，最后用<code>HAVING</code>条件中的聚集函数<code>COUNT</code>对每一组进行计数，选出<code>COUNT&gt;10</code>的组，输出该组的<code>sno</code>。</p>
+<p><code>where</code>和<code>having</code>子句的<mark>区别：</mark></p>
+<ol>
+<li>作用的对象不同。<code>WHERE</code>子句作用于表和视图，<code>HAVING</code>子句作用于组。</li>
+
+</ol>
+<ol start='2' >
+<li><p><code>WHERE</code>在分组和聚集计算之前选取输入行(因此，它控制哪些行进入聚集计算)， 而<code>HAVING</code>在分组和聚集之后选取分组的行。因此，<strong><code>WHERE</code>子句不能包含聚集函数</strong>。以下写法是错误的：</p>
+<pre><code class='language-sql' lang='sql'>SELECT smajor,AVG(YEAR(NOW())-YEAR(sbirthdate)) age FROM student 
+	where AVG(YEAR(NOW())-YEAR(sbirthdate))&gt;20;			#where后面不能跟聚集函数avg
+</code></pre>
+<p>聚集函数是从确定的结果集中整列数据进行计算的 ，而<code>where</code>子句则是对数据行进行过滤的，所以<code>where</code>子句后面跟聚集函数毫无意义。 相反，<code>HAVING</code>子句总是包含聚集函数，严格说来，可以写不使用聚集的<code>HAVING</code>子句，但这样做效率不高，因为同样的条件可以更有效地用于<code>WHERE</code>进行过滤。</p>
+</li>
+<li><p><code>WHERE</code>子句在聚合前先筛选记录，也就是说作用在<code>GROUP BY</code>子句和<code>HAVING</code>子句前．</p>
+<p>而<code>HAVING</code>子句在聚合后对组记录进行筛选。  </p>
+</li>
+
+</ol>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</body>
+</html>

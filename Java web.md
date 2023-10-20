@@ -2922,8 +2922,8 @@ ${表达式}
           <title>Tit1e</title>
       </head>
       <body>
-          用户名：<%=request,getAttribute("username")%><br/>
-          密码：<%=request,getAttribute("password")%><br/>
+          用户名：<%=request.getAttribute("username")%><br/>
+          密码：<%=request.getAttribute("password")%><br/>
       </body>
   </html>
   ~~~
