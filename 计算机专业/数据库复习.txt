@@ -1,0 +1,211 @@
+3.4.4 集合查询
+ 并集 union,  交集 intersert,  差集except
+  查询计算机科学与技术专业和信息安全专业学生的信息;
+   select * from student where smajor='计算机科学与技术'
+   union select * from student where smajor='信息安全';
+
+   select * from student where smajor='计算机科学与技术'
+   or  smajor='信息安全';
+
+
+3.3.5 派生表查询:子查询作为表的来源
+   查询每个学生超出他自己平均成绩的课程号;
+    select cno from sc,(select sno,avg(grade) ag from sc group by sno)
+      sc2 where sc.sno=sc2.sno and grade>ag;
+
+3.4 数据更新  (考察的内容?z)
+  插入:(4,81010,数据库）;(指定列的值的插入)
+  更新:将计算机专业的成绩改为90;
+
+3.5 空置的处理
+ 所谓空值就是指不知道,不存在或无意义的值;
+ 1. 空值的产生
+ 2. ?z空值的判断: is null,is not null,<=>：相等或都等于 null 为空
+  查询先修课为空的课程信息;
+  select * from course where cpno is  null;
+  select * from course where cpno <=> null;
+ 3. 空值的约束
+   列名 数据类型 not null,
+ 4. 空值的逻辑运算
+
+3.6 视 图(表.*代表所有列)
+  1. 创建视图
+   create view 视图名 as 子查询 [with check option];
+ 
+   a.创建视图s1,要求视图中包含学生,课程,学生选课的所有信息;
+   create view s1 as 
+     select student.*,course.*,grade,semester,teachingclass
+     from student,course,sc where student.sno=sc.sno and course.cno =sc.cno;   
+
+  2. 查询视图(视图简化了查询的操作)
+  select * from s1;
+  b.查询信息安全专业选修的课程名;
+  select cname from s1 where smajor='信息安全';
+
+  3. 更新视图
+    当视图来源于多个表时或视图出现聚集函数时,不允许更新;当视图
+    来源于单个表时,可以更新,同时会更新基本表中的数据.
+    insert into.s1(sno,snmae,cno,cname)
+    values('20180013','张三','81012','数据库');
+
+  c.创建视图s2,要求包含计算机专业的所有信息
+   create view s2 as select * from student where smajor='计算机科学与技术';
+   insert into s2 values('20180014','李四','女','2013-1-16','软件工程');
+    select * from s2;
+    select * from student;
+
+  d.创建视图s3,要求包含计算机专业学生的所有信息,以及对视图的
+   增删改都只能是计算机专业;
+
+    create view s3 as select *from student where smajor='计算机科学与技术' with 
+check option;
+insert into s3 values ('20180015','王五','女','2013-1-16','计算机科学与技术');
+ select * from student;
+
+
+4. 删除视图
+   drop view 视图名;
+ 
+e.在s1的基础上创建视图s4,包含数据结构的的成绩;
+ create view s4 as select grade from s1 where cname='数据结构';
+
+ drop view s1;
+
+
+第4章 数据库安全性
+ 4.1 数据库安全性概述
+  (?)z数据库的安全性是指保护数据库，以防不合法使用所造成的的数据泄露,篡改或破坏 
+4.1.1  不安全的因素
+  非授权用户对数据库的恶意存取或破坏
+  数据库中重要或敏感的数据被泄露
+  安全环境的脆弱性
+ 4.1.2 安全标准简介
+ TCSEC 四组 七个等级 最高等级A1,最低等级D
+ CC    EAL1-EAL7  最高等级EAL7
+ 
+4.2 安全性控制
+   4.2.1 用户身份鉴别
+ (?)z静态口令鉴别:生日密码,QQ密码
+   动态口令鉴别:短信验证码,邮箱验证码
+   生物特征鉴别:指纹、人脸识别、虹膜
+   智能卡鉴别:电子芯片
+   入侵检测:邮件报警、程序中断
+
+
+
+ 
+ 
+ 
+
+
+
+
+
+
+4.2.2 存取控制
+   定义用户权限
+   合法权限检查
+    
+4.2.3 自助存取控制方法
+    sql 中用grant 和 revoke 进行授权与收权的操作;
+    基本表和视图:
+    select,insert,update,delete,references(参照),all privileges(权力)
+    列:select insert update delete all privileges
+
+4.2.4 授权与收权
+  1.创建用户
+   create user 用户名 identified(身份,凭证) by 密码;
+
+   create user u1@'localhost' identified by 'root';
+    查看用户名: select user from mysql.user;
+  2. 授权
+  grant 权限 on 对象类型 表名[列名] to 用户[with grant option];
+ 
+  grant select on table student to u1@'localhost';
+  grant insert on table student to u1@'localhost';
+  查看用户的权限: show grants for u1@'localhost';
+
+ a.将用户u2对学生表的查询权限给用户u3
+ create user u2@'localhost' identified by 'root';
+ create user u3@'localhost' identified by 'root';
+
+ grant select on student to u3@'localhost' with grant option;
+ 切换到用户u2: grant select on student to u3@'localhost'
+
+3. 收回权限
+   revoke 权限 on 对象类型 表名 from 用户;
+   revoke select on table student from u3@'localhost';
+
+
+4.2.5 数据库角色
+  create role 角色名;
+  grant 权限 on 表名 to 角色名;
+  revoke 权限 on 表名 from 角色名;
+
+
+
+4.5 数据加密
+    根据一定的算法将明文转换成不可直接识别的格式--密文;
+    1. 存储加密
+    2. 传输加密
+
+
+
+
+
+
+数据库的完整性:
+  数据库的正确性和相容性
+
+5.2 实体完整性
+   主键不为空,且是唯一值;
+    对于单个属性来说,实体完整性既可以定义在列级约束条
+    件上，也可以定义在表级约束条件上。
+   列级: create table stu1(sno,char(8) primary key);
+   表级: create table stu2(sno char(8), primary key(sno));
+   修改: alter table stu3 add primary key(sno);
+   新增一列: alter table add lie
+ 
+5.3 参照完整性
+  外键可以取空值，不为空的话必须是已经存在的某个主键的值.
+  参照完整性只能定义在表级约束条件上;
+  create table stu4(sno char(8),
+               foreign key(sno) references student(sno));
+修改: alter table stu4 add foreign key(sno) references student(sno));
+
+5.4 用户定义的完整性
+ not null,unique,check（mysql 8.0 可以使用）
+
+create table stu5(
+  sno char(8)primary key,
+  sname char(20) unique not null,
+  ssex char(2) check (ssex in ('男','女')));
+
+
+ 
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
