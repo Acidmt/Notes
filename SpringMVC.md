@@ -1000,7 +1000,7 @@ SpringMVC
 
   ~~~java
   @RequestMapping("/testParam")
-  public String testParam(@RequestParam(value="user_name",required=false,defaultValue="lisi")String username, 
+  public String testParam(@RequestParam(value="username",required=false,defaultValue="lisi")String username, 
                           String password,
                           String[] hobby){
       System.out.println("username:"+username+

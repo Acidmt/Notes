@@ -4,6 +4,10 @@ SSM整合
 
 # 一. 创建项目
 
+<img src="https://image.sybblogs.fun/img-common/202405250036576.png" alt="image-20240525003639416" style="zoom: 33%;" />
+
+<img src="https://image.sybblogs.fun/img-common/202405250037489.png" alt="image-20240525003743081" style="zoom: 33%;" />
+
 - 首先配置tomcat
 
   [配置tomcat：](https://gitee.com/Acido/images/raw/master/image/202210022214347.png)
