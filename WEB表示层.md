@@ -3228,7 +3228,7 @@ function fn(){
 btns[1] . addEventListener( 'click',fn );						//移除监听事件
 function fn(){
     alert(66);
-    divs [1] . removeEventListener('click', fn);				//执行事件执行一次后移除
+    divs [1].removeEventListener('click', fn);				//执行事件执行一次后移除
 }
 ~~~
 
